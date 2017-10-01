@@ -6,6 +6,7 @@ Main application window
 """
 from __future__ import unicode_literals
 from gi.repository import Retro, Gtk, Gdk, Gio, GLib, GObject
+from retrotouch.svg_widget import SVGWidget
 from retrotouch.tools import _, set_logging_level
 
 import os, logging
@@ -50,8 +51,15 @@ class App(Gtk.Application):
 		self.window.set_title(_("RetroTouch"))
 		self.window.set_wmclass("RetroTouch", "RetroTouch")
 		
+		rvLeft = self.builder.get_object("rvLeft")
+		rvRight = self.builder.get_object("rvRight")
+		self.left = SVGWidget(os.path.join(self.imagepath, "pads/nes/left.svg"))
+		self.right = SVGWidget(os.path.join(self.imagepath, "pads/nes/right.svg"))
+		rvLeft.add(self.left)
+		rvRight.add(self.right)
+		
 		self.display = Retro.CairoDisplay()
-		self.display.set_size_request(640, 480)
+		self.display.set_size_request(320, 200)
 		box = self.builder.get_object("ebMain")
 		box.add(self.display)
 		self.window.show_all()

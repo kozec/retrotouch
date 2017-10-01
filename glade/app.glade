@@ -169,10 +169,38 @@
           </packing>
         </child>
         <child>
-          <placeholder/>
+          <object class="GtkRevealer" id="rvLeft">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="margin_left">5</property>
+            <property name="margin_right">5</property>
+            <property name="transition_type">slide-right</property>
+            <property name="reveal_child">True</property>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">2</property>
+          </packing>
         </child>
         <child>
-          <placeholder/>
+          <object class="GtkRevealer" id="rvRight">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="margin_left">5</property>
+            <property name="margin_right">5</property>
+            <property name="transition_type">slide-left</property>
+            <property name="reveal_child">True</property>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="left_attach">2</property>
+            <property name="top_attach">2</property>
+          </packing>
         </child>
       </object>
     </child>
