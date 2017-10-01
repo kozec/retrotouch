@@ -37,6 +37,7 @@ class App(Gtk.Application):
 		Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", True)
 		self.gladepath = gladepath
 		self.imagepath = imagepath
+		self.paused = False
 	
 	
 	def setup_widgets(self):
@@ -75,7 +76,7 @@ class App(Gtk.Application):
 		self.core.do_init(self.core)
 		self.display.set_core(self.core)
 		self.core.load_game(self.game)
-		print "Load", self.core.get_is_initiated()
+		self.paused = False
 		GLib.timeout_add(1000.0 / self.core.get_frames_per_second(), self._run)
 	
 	
@@ -115,8 +116,13 @@ class App(Gtk.Application):
 	
 	
 	def _run(self):
-		self.core.run()
-		return True
+		if self.paused:
+			btPlayPause = self.builder.get_object("btPlayPause")
+			btPlayPause.set_sensitive(True)
+			return False
+		else:
+			self.core.run()
+			return True
 	
 	
 	def on_core_initialized(self, *a):
@@ -130,6 +136,18 @@ class App(Gtk.Application):
 	def on_window_delete_event(self, *a):
 		""" Called when user tries to close window """
 		return False
+	
+	
+	def on_btPlayPause_clicked(self, button):
+		imgPlayPause = self.builder.get_object("imgPlayPause")
+		if self.paused:
+			self.paused = False
+			GLib.timeout_add(1000.0 / self.core.get_frames_per_second(), self._run)
+			imgPlayPause.set_from_stock("gtk-media-pause", Gtk.IconSize.BUTTON)
+		else:
+			self.paused = True
+			button.set_sensitive(False)
+			imgPlayPause.set_from_stock("gtk-media-play", Gtk.IconSize.BUTTON)
 	
 	
 	def on_ebMain_focus_out_event(self, box, whatever):

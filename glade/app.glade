@@ -54,7 +54,7 @@
           </object>
           <packing>
             <property name="left_attach">1</property>
-            <property name="top_attach">1</property>
+            <property name="top_attach">2</property>
           </packing>
         </child>
         <child>
@@ -122,63 +122,18 @@
           <object class="GtkRevealer" id="rvDisplaySettings">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="transition_type">slide-right</property>
             <child>
-              <object class="GtkBox" id="vbDisplaySettings">
+              <object class="GtkButtonBox" id="bbDisplaySettings">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="margin_top">5</property>
                 <property name="margin_bottom">5</property>
-                <property name="orientation">vertical</property>
+                <property name="layout_style">center</property>
                 <child>
-                  <object class="GtkBox" id="vpSharp">
+                  <object class="GtkLabel" id="lblSharp">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <child>
-                      <object class="GtkLabel" id="lblSharp">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="margin_left">5</property>
-                        <property name="label" translatable="yes">Sharpen</property>
-                        <property name="xalign">0</property>
-                        <attributes>
-                          <attribute name="weight" value="bold"/>
-                        </attributes>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkSwitch" id="swSharp">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="margin_left">10</property>
-                        <property name="margin_right">10</property>
-                        <signal name="activate" handler="on_swSharp_activate" swapped="no"/>
-                        <signal name="state-set" handler="on_swSharp_activate" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="lblFilter">
-                    <property name="can_focus">False</property>
-                    <property name="no_show_all">True</property>
-                    <property name="margin_left">5</property>
-                    <property name="label" translatable="yes">Filter</property>
+                    <property name="label" translatable="yes">Sharpen</property>
                     <property name="xalign">0</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -187,46 +142,21 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkScrolledWindow" id="swFilter">
-                    <property name="width_request">100</property>
+                  <object class="GtkSwitch" id="swSharp">
+                    <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="no_show_all">True</property>
                     <property name="margin_left">10</property>
-                    <property name="margin_right">10</property>
-                    <property name="margin_top">5</property>
-                    <property name="shadow_type">in</property>
-                    <child>
-                      <object class="GtkTreeView" id="tvFilter">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="model">lstFilter</property>
-                        <property name="headers_visible">False</property>
-                        <signal name="cursor-changed" handler="on_tvFilter_cursor_changed" swapped="no"/>
-                        <child internal-child="selection">
-                          <object class="GtkTreeSelection" id="tsFilter"/>
-                        </child>
-                        <child>
-                          <object class="GtkTreeViewColumn" id="tvcFilter">
-                            <property name="title" translatable="yes">column</property>
-                            <child>
-                              <object class="GtkCellRendererText" id="crFilter"/>
-                              <attributes>
-                                <attribute name="text">1</attribute>
-                              </attributes>
-                            </child>
-                          </object>
-                        </child>
-                      </object>
-                    </child>
+                    <signal name="activate" handler="on_swSharp_activate" swapped="no"/>
+                    <signal name="state-set" handler="on_swSharp_activate" swapped="no"/>
                   </object>
                   <packing>
-                    <property name="expand">True</property>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">2</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
               </object>
@@ -235,13 +165,8 @@
           <packing>
             <property name="left_attach">0</property>
             <property name="top_attach">1</property>
+            <property name="width">3</property>
           </packing>
-        </child>
-        <child>
-          <placeholder/>
-        </child>
-        <child>
-          <placeholder/>
         </child>
         <child>
           <placeholder/>
@@ -281,6 +206,7 @@
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="relief">none</property>
+            <signal name="clicked" handler="on_btPlayPause_clicked" swapped="no"/>
             <child>
               <object class="GtkImage" id="imgPlayPause">
                 <property name="visible">True</property>
