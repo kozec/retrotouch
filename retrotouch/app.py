@@ -17,6 +17,7 @@ class App(Gtk.Application):
 	Main application / window.
 	"""
 	
+	HILIGHT = "#FF0000"
 	DEFAULT_MAPPINGS = {
 		Gdk.KEY_Return:		1 << Retro.GamepadButtonType.START,
 		Gdk.KEY_Shift_R:	1 << Retro.GamepadButtonType.SELECT,
@@ -29,6 +30,24 @@ class App(Gtk.Application):
 		Gdk.KEY_x:			1 << Retro.JoypadId.A,
 	}
 	
+	TOUCH_MAPPINGS = {
+		"A":			1 << Retro.JoypadId.B,
+		"B":			1 << Retro.JoypadId.A,
+		"START":		1 << Retro.GamepadButtonType.START,
+		"SELECT":		1 << Retro.GamepadButtonType.SELECT,
+		"DPAD_UP":		1 << Retro.GamepadButtonType.DIRECTION_UP,
+		"DPAD_DOWN":	1 << Retro.GamepadButtonType.DIRECTION_DOWN,
+		"DPAD_LEFT":	1 << Retro.GamepadButtonType.DIRECTION_LEFT,
+		"DPAD_RIGHT":	1 << Retro.GamepadButtonType.DIRECTION_RIGHT,
+	}
+	
+	DPAD_DIRECTIONS = (
+			(1 << Retro.GamepadButtonType.DIRECTION_UP)
+			| (1 << Retro.GamepadButtonType.DIRECTION_DOWN)
+			| (1 << Retro.GamepadButtonType.DIRECTION_LEFT)
+			| (1 << Retro.GamepadButtonType.DIRECTION_RIGHT)
+	)
+	
 	
 	def __init__(self, gladepath="/usr/share/retrotouch",
 						imagepath="/usr/share/retrotouch/images"):
@@ -36,6 +55,7 @@ class App(Gtk.Application):
 				application_id="me.kozec.retrotouch",
 				flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE | Gio.ApplicationFlags.NON_UNIQUE )
 		Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", True)
+		self.hilights = {}
 		self.gladepath = gladepath
 		self.imagepath = imagepath
 		self.paused = False
@@ -51,12 +71,16 @@ class App(Gtk.Application):
 		self.window.set_title(_("RetroTouch"))
 		self.window.set_wmclass("RetroTouch", "RetroTouch")
 		
-		rvLeft = self.builder.get_object("rvLeft")
-		rvRight = self.builder.get_object("rvRight")
+		asLeft = self.builder.get_object("asLeft")
+		asRight = self.builder.get_object("asRight")
 		self.left = SVGWidget(os.path.join(self.imagepath, "pads/nes/left.svg"))
 		self.right = SVGWidget(os.path.join(self.imagepath, "pads/nes/right.svg"))
-		rvLeft.add(self.left)
-		rvRight.add(self.right)
+		asLeft.add(self.left)
+		asRight.add(self.right)
+		
+		for x in (self.left, self.right):
+			x.set_events(Gdk.EventMask.TOUCH_MASK)
+			x.connect('touch-event', self.on_touch_event)
 		
 		self.display = Retro.CairoDisplay()
 		self.display.set_size_request(320, 200)
@@ -162,14 +186,80 @@ class App(Gtk.Application):
 		box.grab_focus()
 	
 	
-	def do_command_line(self, cl):
-		Gtk.Application.do_command_line(self, cl)
-		self.activate()
-		return 0
+	def dpad_update(self, widget, event):
+		""" Special case so dpad 'buttons' blings nicelly """
+		x, y, width, height = widget.get_area_position("DPAD")
+		x = event.x - x
+		y = event.y - y
+		update = False
+		
+		if y > height * 0.25 and y < height * 0.75:
+			if x > width * 0.5:
+				self.hilights["DPAD1"] = "DPAD_RIGHT"
+				self.input.state |= App.TOUCH_MAPPINGS["DPAD_RIGHT"]
+				self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_LEFT"]
+				update = True
+			else:
+				self.hilights["DPAD1"] = "DPAD_LEFT"
+				self.input.state |= App.TOUCH_MAPPINGS["DPAD_LEFT"]
+				self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_RIGHT"]
+				update = True
+		elif "DPAD1" in self.hilights:
+			del self.hilights["DPAD1"]
+			self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_LEFT"]
+			self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_RIGHT"]
+			update = True
+		
+		if x > width * 0.25 and x < width * 0.75:
+			if y > height * 0.5:
+				self.hilights["DPAD2"] = "DPAD_DOWN"
+				self.input.state |= App.TOUCH_MAPPINGS["DPAD_DOWN"]
+				self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_UP"]
+				update = True
+			else:
+				self.hilights["DPAD2"] = "DPAD_UP"
+				self.input.state |= App.TOUCH_MAPPINGS["DPAD_UP"]
+				self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_DOWN"]
+				update = True
+		elif "DPAD2" in self.hilights:
+			del self.hilights["DPAD2"]
+			self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_UP"]
+			self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_DOWN"]
+			update = True
+		
+		if update:
+			widget.hilight({ a : self.HILIGHT for (trash, a) in self.hilights.items() })
 	
 	
-	def do_activate(self, *a):
-		self.builder.get_object("window").show()
+	def dpad_cancel(self):
+		if "DPAD1" in self.hilights:
+			del self.hilights["DPAD1"]
+		if "DPAD2" in self.hilights:
+			del self.hilights["DPAD2"]
+		self.input.state &= ~App.DPAD_DIRECTIONS
+	
+	def on_touch_event(self, widget, event):
+		if event.type == Gdk.EventType.TOUCH_BEGIN:
+			a = widget.get_area_at(event.x, event.y)
+			if a:
+				self.hilights[event.sequence] = a
+				if a == "DPAD":
+					self.dpad_update(widget, event)
+				else:
+					widget.hilight({ a : self.HILIGHT for (trash, a) in self.hilights.items() })
+				if a in App.TOUCH_MAPPINGS:
+					self.input.state |= App.TOUCH_MAPPINGS[a]
+		elif event.type == Gdk.EventType.TOUCH_UPDATE:
+			if self.hilights.get(event.sequence) == "DPAD":
+				self.dpad_update(widget, event)
+		elif event.type == Gdk.EventType.TOUCH_END:
+			a = self.hilights.get(event.sequence)
+			if a:
+				if a == "DPAD": self.dpad_cancel()
+				del self.hilights[event.sequence]
+				if a in App.TOUCH_MAPPINGS:
+					self.input.state &= ~App.TOUCH_MAPPINGS[a]
+				widget.hilight({ a : self.HILIGHT for (trash, a) in self.hilights.items() })
 	
 	
 	def on_window_key_press_event(self, window, event):
@@ -180,6 +270,16 @@ class App(Gtk.Application):
 	def on_window_key_release_event(self, window, event):
 		if event.keyval in App.DEFAULT_MAPPINGS:
 			self.input.state &= ~App.DEFAULT_MAPPINGS[event.keyval]
+	
+	
+	def do_command_line(self, cl):
+		Gtk.Application.do_command_line(self, cl)
+		self.activate()
+		return 0
+	
+	
+	def do_activate(self, *a):
+		self.builder.get_object("window").show()
 	
 	
 	def do_startup(self, *a):
