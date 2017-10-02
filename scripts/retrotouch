@@ -14,8 +14,9 @@ if __name__ == "__main__":
 	gi.require_version('Rsvg', '2.0') 
 	gi.require_version('Retro', '0.10') 
 	
-	from retrotouch.tools import init_logging
+	from retrotouch.tools import init_logging, set_logging_level
 	init_logging()
+	set_logging_level(True, True)
 
 	from gi.repository import Gtk, GObject
 	from retrotouch.paths import get_share_path

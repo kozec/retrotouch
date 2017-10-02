@@ -7,7 +7,7 @@ Main application window
 from __future__ import unicode_literals
 from gi.repository import Retro, Gtk, Gdk, Gio, GLib, GObject
 from retrotouch.svg_widget import SVGWidget
-from retrotouch.tools import _, set_logging_level
+from retrotouch.tools import _
 
 import os, logging
 log = logging.getLogger("App")
@@ -56,6 +56,7 @@ class App(Gtk.Application):
 				flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE | Gio.ApplicationFlags.NON_UNIQUE )
 		Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", True)
 		self.hilights = {}
+		self.core = None
 		self.gladepath = gladepath
 		self.imagepath = imagepath
 		self.paused = False
@@ -82,6 +83,8 @@ class App(Gtk.Application):
 			x.set_events(Gdk.EventMask.TOUCH_MASK)
 			x.connect('touch-event', self.on_touch_event)
 		
+		self.audio = Retro.PaPlayer()
+		
 		self.display = Retro.CairoDisplay()
 		self.display.set_size_request(320, 200)
 		box = self.builder.get_object("ebMain")
@@ -91,25 +94,67 @@ class App(Gtk.Application):
 		self.controller_interface = Retro.InputDeviceManager()
 		self.input = RTInput().initialize()
 		self.controller_interface.set_controller_device (0, self.input)
-		# self.gamepad = Retro.VirtualGamepad.new(box)
-		# self.controller_interface.set_keyboard(Retro.Keyboard.new(box))
+	
+	
+	def select_core(self, game_filename):
+		"""
+		Uses async stuff to load file header and loads apropriate core.
+		Or, with formats where headers are not used, just uses extensions.
+		"""
+		f = Gio.File.new_for_path(game_filename)
 		
-		GLib.timeout_add(100, self.load_game, "Super Mario Bros (E).nes")
+		def on_read_really_done(stream, task):
+			a = stream.read_bytes_finish(task).get_data()
+			if a[0:4] == b"\x4e\x45\x53\x1A":
+				log.debug("Loading NES game")
+				self.load_game("nestopia", game_filename)
+			else:
+				log.debug("Unknown file type")
+		
+		def on_read_done(file, task):
+			inputstream = file.read_finish(task)
+			inputstream.read_bytes_async(1024, 0, None, on_read_really_done)
+		
+		if game_filename.lower().split(".")[-1] in ("smc", "snes"):
+			log.debug("Loading SNES game")
+			#GLib.timeout_add(100, self.load_game, "bsnes", game_filename)
+			GLib.timeout_add(100, self.load_game, "snes9x", game_filename)
+		elif game_filename.lower().split(".")[-1] in ("gb", ):
+			log.debug("Loading GB game")
+			GLib.timeout_add(100, self.load_game, "gambatte", game_filename)
+		else:
+			f.read_async(0, None, on_read_done)
 	
 	
-	def load_game(self, path):
-		core = "/usr/lib/libretro/nestopia_libretro.so"
+	def find_core_filename(self, core):
+		return "/usr/lib/libretro/%s_libretro.so" % (core, )
+	
+	
+	def load_game(self, core, game_path):
+		if self.core is not None:
+			for x in self.core.__signals:
+				self.core.disconnect(x)
+			
+		core = self.find_core_filename(core)
 		self.game = Retro.GameInfo()
-		self.game.init_with_data(path)
+		self.game.init_with_data(game_path)
 		self.core = Retro.Core.new(core)
-		self.core.connect("init", self.on_core_initialized)
-		self.core.connect("message", self.on_core_message)
+		self.core.__signals = [
+			self.core.connect("init", self.on_core_initialized),
+			self.core.connect("message", self.on_core_message)
+		]
 		self.core.set_input_interface(self.controller_interface)
 		self.core.do_init(self.core)
 		self.display.set_core(self.core)
+		self.audio.set_core(self.core)
 		self.core.load_game(self.game)
-		self.paused = False
-		GLib.timeout_add(1000.0 / self.core.get_frames_per_second(), self._run)
+		
+		def do_it_later():
+			self.paused = False
+			GLib.timeout_add(1000.0 / self.core.get_frames_per_second(), self._run)
+			return False
+		
+		GLib.timeout_add(1000, do_it_later)
 	
 	
 	def on_btSettings_toggled(self, bt, *a):
@@ -238,6 +283,7 @@ class App(Gtk.Application):
 			del self.hilights["DPAD2"]
 		self.input.state &= ~App.DPAD_DIRECTIONS
 	
+	
 	def on_touch_event(self, widget, event):
 		if event.type == Gdk.EventType.TOUCH_BEGIN:
 			a = widget.get_area_at(event.x, event.y)
@@ -274,6 +320,9 @@ class App(Gtk.Application):
 	
 	def do_command_line(self, cl):
 		Gtk.Application.do_command_line(self, cl)
+		if len(cl.get_arguments()) > 1:
+			filename = " ".join(cl.get_arguments()[1:]) # 'cos fuck Gtk...
+			self.select_core(filename)
 		self.activate()
 		return 0
 	
