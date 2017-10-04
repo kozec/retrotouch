@@ -5,12 +5,14 @@ RetroTouch - App
 Main application window
 """
 from __future__ import unicode_literals
-from gi.repository import Retro, Gtk, Gdk, Gio, GLib, GObject
+from gi.repository import Retro, Gtk, Gdk, Gio, GLib
 from retrotouch.svg_widget import SVGWidget
+from retrotouch.input import Input
 from retrotouch.tools import _
 
 import os, logging
 log = logging.getLogger("App")
+
 
 class App(Gtk.Application):
 	"""
@@ -19,34 +21,34 @@ class App(Gtk.Application):
 	
 	HILIGHT = "#FF0000"
 	DEFAULT_MAPPINGS = {
-		Gdk.KEY_Return:		1 << Retro.GamepadButtonType.START,
-		Gdk.KEY_Shift_R:	1 << Retro.GamepadButtonType.SELECT,
-		Gdk.KEY_Up:			1 << Retro.GamepadButtonType.DIRECTION_UP,
-		Gdk.KEY_Down:		1 << Retro.GamepadButtonType.DIRECTION_DOWN,
-		Gdk.KEY_Left:		1 << Retro.GamepadButtonType.DIRECTION_LEFT,
-		Gdk.KEY_Right:		1 << Retro.GamepadButtonType.DIRECTION_RIGHT,
-		Gdk.KEY_z:			1 << Retro.JoypadId.B,
-		Gdk.KEY_y:			1 << Retro.JoypadId.B,
-		Gdk.KEY_x:			1 << Retro.JoypadId.A,
+		Gdk.KEY_Return:		1 << 1,
+		Gdk.KEY_Shift_R:	1 << 2,
+		Gdk.KEY_Up:			1 << 3,
+		Gdk.KEY_Down:		1 << 4,
+		Gdk.KEY_Left:		1 << 5,
+		Gdk.KEY_Right:		1 << 6,
+		Gdk.KEY_z:			1 << 7,
+		Gdk.KEY_y:			1 << 8,
+		Gdk.KEY_x:			1 << 9,
 	}
 	
 	TOUCH_MAPPINGS = {
-		"A":			1 << Retro.JoypadId.B,
-		"B":			1 << Retro.JoypadId.A,
-		"START":		1 << Retro.GamepadButtonType.START,
-		"SELECT":		1 << Retro.GamepadButtonType.SELECT,
-		"DPAD_UP":		1 << Retro.GamepadButtonType.DIRECTION_UP,
-		"DPAD_DOWN":	1 << Retro.GamepadButtonType.DIRECTION_DOWN,
-		"DPAD_LEFT":	1 << Retro.GamepadButtonType.DIRECTION_LEFT,
-		"DPAD_RIGHT":	1 << Retro.GamepadButtonType.DIRECTION_RIGHT,
+		"A":			1 << 1,
+		"B":			1 << 2,
+		"START":		1 << 3,
+		"SELECT":		1 << 4,
+		"DPAD_UP":		1 << 5,
+		"DPAD_DOWN":	1 << 6,
+		"DPAD_LEFT":	1 << 7,
+		"DPAD_RIGHT":	1 << 8,
 	}
 	
-	DPAD_DIRECTIONS = (
-			(1 << Retro.GamepadButtonType.DIRECTION_UP)
-			| (1 << Retro.GamepadButtonType.DIRECTION_DOWN)
-			| (1 << Retro.GamepadButtonType.DIRECTION_LEFT)
-			| (1 << Retro.GamepadButtonType.DIRECTION_RIGHT)
-	)
+	DPAD_DIRECTIONS = ( 0 )
+	#	(1 << Retro.GamepadButtonType.DIRECTION_UP)
+	#	| (1 << Retro.GamepadButtonType.DIRECTION_DOWN)
+	#	| (1 << Retro.GamepadButtonType.DIRECTION_LEFT)
+	#	| (1 << Retro.GamepadButtonType.DIRECTION_RIGHT)
+	#
 	
 	
 	def __init__(self, gladepath="/usr/share/retrotouch",
@@ -74,8 +76,8 @@ class App(Gtk.Application):
 		
 		asLeft = self.builder.get_object("asLeft")
 		asRight = self.builder.get_object("asRight")
-		self.left = SVGWidget(os.path.join(self.imagepath, "pads/nes/left.svg"))
-		self.right = SVGWidget(os.path.join(self.imagepath, "pads/nes/right.svg"))
+		self.left = SVGWidget(os.path.join(self.imagepath, "pads/psp/left.svg"))
+		self.right = SVGWidget(os.path.join(self.imagepath, "pads/psp/right.svg"))
 		asLeft.add(self.left)
 		asRight.add(self.right)
 		
@@ -92,7 +94,7 @@ class App(Gtk.Application):
 		self.window.show_all()
 		
 		self.controller_interface = Retro.InputDeviceManager()
-		self.input = RTInput().initialize()
+		self.input = Input()
 		self.controller_interface.set_controller_device (0, self.input)
 	
 	
@@ -117,8 +119,10 @@ class App(Gtk.Application):
 		
 		if game_filename.lower().split(".")[-1] in ("smc", "snes"):
 			log.debug("Loading SNES game")
-			#GLib.timeout_add(100, self.load_game, "bsnes", game_filename)
 			GLib.timeout_add(100, self.load_game, "snes9x", game_filename)
+		elif game_filename.lower().split(".")[-1] in ("iso", "cso"):
+			log.debug("Loading PSP game")
+			GLib.timeout_add(100, self.load_game, "ppsspp", game_filename)
 		elif game_filename.lower().split(".")[-1] in ("gb", ):
 			log.debug("Loading GB game")
 			GLib.timeout_add(100, self.load_game, "gambatte", game_filename)
@@ -136,18 +140,19 @@ class App(Gtk.Application):
 				self.core.disconnect(x)
 			
 		core = self.find_core_filename(core)
-		self.game = Retro.GameInfo()
-		self.game.init_with_data(game_path)
+		#self.game = Retro.GameInfo()
+		#self.game.init_with_data(game_path)
 		self.core = Retro.Core.new(core)
-		self.core.__signals = [
-			self.core.connect("init", self.on_core_initialized),
-			self.core.connect("message", self.on_core_message)
-		]
+		#self.core.__signals = [
+		#	self.core.connect("init", self.on_core_initialized),
+		#	self.core.connect("message", self.on_core_message)
+		#]
 		self.core.set_input_interface(self.controller_interface)
-		self.core.do_init(self.core)
+		#self.core.do_init(self.core)
 		self.display.set_core(self.core)
 		self.audio.set_core(self.core)
-		self.core.load_game(self.game)
+		#self.core.load_game(self.game)
+		self.core.load_game(game_path)
 		
 		def do_it_later():
 			self.paused = False
@@ -334,34 +339,3 @@ class App(Gtk.Application):
 	def do_startup(self, *a):
 		Gtk.Application.do_startup(self, *a)
 		self.setup_widgets()
-
-
-class RTInput(GObject.GObject, Retro.InputDevice):
-	
-	def initialize(self):
-		# Because InputDevice classhes with GObject in __init__ 
-		self.state = 0
-		return self
-	
-	
-	def do_get_device_capabilities(self):
-		caps = 0
-		caps |= (1 << Retro.DeviceType.JOYPAD)
-		# caps |= (1 << Retro.DeviceType.ANALOG)
-		return caps
-	
-	
-	def do_get_device_type(self):
-		return Retro.DeviceType.JOYPAD
-	
-	
-	def do_get_input_state(self, device, index, id):
-		# print "input", device, index, id
-		if device == Retro.DeviceType.JOYPAD:
-			return self.state & (1 << id)
-		else:
-			print device
-	
-	
-	def do_poll(self):
-		return True
