@@ -7,8 +7,12 @@ cd "$(dirname "$0")"
 SCRIPTS="$(pwd)/scripts"
 export PATH="$SCRIPTS":"$PATH"
 export PYTHONPATH=".":"$PYTHONPATH"
-export SHARED="$(pwd)"
+export SHARED="$(pwd)/resources"
+
+# Build libs
+python2 setup.py build || exit 1
+[ -h libretrointerface.so ] || ln -s build/lib.linux-x86_64-2.7/libretrointerface.so .
 
 # Execute
-# lldb python2 -- 'scripts/retrotouch' $@
-python2 'scripts/retrotouch' $@
+(echo "run scripts/retrotouch" ; echo "bt") | gdb python2
+# python2 'scripts/retrotouch' $@

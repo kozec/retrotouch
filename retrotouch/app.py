@@ -5,9 +5,9 @@ RetroTouch - App
 Main application window
 """
 from __future__ import unicode_literals
-from gi.repository import Retro, Gtk, Gdk, Gio, GLib
+from gi.repository import Gtk, Gdk, Gio, GLib
 from retrotouch.svg_widget import SVGWidget
-from retrotouch.input import Input
+from retrotouch.native.wrapper import Wrapper
 from retrotouch.tools import _
 
 import os, logging
@@ -51,23 +51,21 @@ class App(Gtk.Application):
 	#
 	
 	
-	def __init__(self, gladepath="/usr/share/retrotouch",
-						imagepath="/usr/share/retrotouch/images"):
+	def __init__(self, respath="/usr/share/retrotouch"):
 		Gtk.Application.__init__(self,
 				application_id="me.kozec.retrotouch",
 				flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE | Gio.ApplicationFlags.NON_UNIQUE )
 		Gtk.Settings.get_default().set_property("gtk-application-prefer-dark-theme", True)
 		self.hilights = {}
 		self.core = None
-		self.gladepath = gladepath
-		self.imagepath = imagepath
+		self.respath = respath
 		self.paused = False
 	
 	
 	def setup_widgets(self):
 		# Important stuff
 		self.builder = Gtk.Builder()
-		self.builder.add_from_file(os.path.join(self.gladepath, "app.glade"))
+		self.builder.add_from_file(os.path.join(self.respath, "app.glade"))
 		self.builder.connect_signals(self)
 		self.window = self.builder.get_object("window")
 		self.add_window(self.window)
@@ -76,8 +74,8 @@ class App(Gtk.Application):
 		
 		asLeft = self.builder.get_object("asLeft")
 		asRight = self.builder.get_object("asRight")
-		self.left = SVGWidget(os.path.join(self.imagepath, "pads/psp/left.svg"))
-		self.right = SVGWidget(os.path.join(self.imagepath, "pads/psp/right.svg"))
+		self.left = SVGWidget(os.path.join(self.respath, "pads/psp/left.svg"))
+		self.right = SVGWidget(os.path.join(self.respath, "pads/psp/right.svg"))
 		asLeft.add(self.left)
 		asRight.add(self.right)
 		
@@ -85,17 +83,12 @@ class App(Gtk.Application):
 			x.set_events(Gdk.EventMask.TOUCH_MASK)
 			x.connect('touch-event', self.on_touch_event)
 		
-		self.audio = Retro.PaPlayer()
-		
-		self.display = Retro.CairoDisplay()
-		self.display.set_size_request(320, 200)
 		box = self.builder.get_object("ebMain")
-		box.add(self.display)
+		self.wrapper = Wrapper(self.respath, box)
 		self.window.show_all()
 		
-		self.controller_interface = Retro.InputDeviceManager()
-		self.input = Input()
-		self.controller_interface.set_controller_device (0, self.input)
+		GLib.idle_add(self.select_core, "./Danganronpa [EN][v1.0][Full].iso")
+		# GLib.idle_add(self.select_core, "./Super Mario Bros (E).nes")
 	
 	
 	def select_core(self, game_filename):
@@ -135,84 +128,18 @@ class App(Gtk.Application):
 	
 	
 	def load_game(self, core, game_path):
-		if self.core is not None:
-			for x in self.core.__signals:
-				self.core.disconnect(x)
-			
-		core = self.find_core_filename(core)
-		#self.game = Retro.GameInfo()
-		#self.game.init_with_data(game_path)
-		self.core = Retro.Core.new(core)
-		#self.core.__signals = [
-		#	self.core.connect("init", self.on_core_initialized),
-		#	self.core.connect("message", self.on_core_message)
-		#]
-		self.core.set_input_interface(self.controller_interface)
-		#self.core.do_init(self.core)
-		self.display.set_core(self.core)
-		self.audio.set_core(self.core)
-		#self.core.load_game(self.game)
-		self.core.load_game(game_path)
-		
-		def do_it_later():
-			self.paused = False
-			GLib.timeout_add(1000.0 / self.core.get_frames_per_second(), self._run)
-			return False
-		
-		GLib.timeout_add(1000, do_it_later)
+		self.wrapper.load_core(self.find_core_filename(core))
+		self.wrapper.load_game(game_path)
+		self.paused = True
+		self.on_btPlayPause_clicked()
 	
 	
 	def on_btSettings_toggled(self, bt, *a):
 		rvToolbar = self.builder.get_object("rvToolbar")
-		btDisplay = self.builder.get_object("btDisplay")
 		if bt.get_active():
 			rvToolbar.set_reveal_child(True)
 		else:
 			rvToolbar.set_reveal_child(False)
-			btDisplay.set_active(False)
-	
-	
-	def on_btDisplay_toggled(self, bt, *a):
-		rvDisplaySettings = self.builder.get_object("rvDisplaySettings")
-		rvDisplaySettings.set_reveal_child(bt.get_active())
-	
-	
-	def on_swSharp_activate(self, b, value):
-		if value:
-			self.display.set_filter(Retro.VideoFilter.SHARP)
-		else:
-			self.display.set_filter(Retro.VideoFilter.SMOOTH)
-	
-	
-	def on_tvFilter_cursor_changed(self, view):
-		model, iter = view.get_selection().get_selected()
-		item, = model.get(iter, 0)
-		
-		if item == "none":
-			print Retro.VideoFilter.from_string("scanline")
-			self.display.set_filter(Retro.VideoFilter.from_string("scanline"))
-		elif item == "smooth":
-			self.display.set_filter(Retro.VideoFilter.SMOOTH)
-		elif item == "sharp":
-			self.display.set_filter(Retro.VideoFilter.SHARP)
-	
-	
-	def _run(self):
-		if self.paused:
-			btPlayPause = self.builder.get_object("btPlayPause")
-			btPlayPause.set_sensitive(True)
-			return False
-		else:
-			self.core.run()
-			return True
-	
-	
-	def on_core_initialized(self, *a):
-		print "on_core_initialized", a
-	
-	
-	def on_core_message(self, *a):
-		print "on_core_message", a
 	
 	
 	def on_window_delete_event(self, *a):
@@ -220,20 +147,19 @@ class App(Gtk.Application):
 		return False
 	
 	
-	def on_btPlayPause_clicked(self, button):
+	def on_btPlayPause_clicked(self, *a):
 		imgPlayPause = self.builder.get_object("imgPlayPause")
-		if self.paused:
-			self.paused = False
-			GLib.timeout_add(1000.0 / self.core.get_frames_per_second(), self._run)
+		if self.paused and self.wrapper.get_game_loaded():
+			self.wrapper.set_paused(False)
 			imgPlayPause.set_from_stock("gtk-media-pause", Gtk.IconSize.BUTTON)
 		else:
-			self.paused = True
-			button.set_sensitive(False)
+			self.wrapper.set_paused(True)
 			imgPlayPause.set_from_stock("gtk-media-play", Gtk.IconSize.BUTTON)
 	
 	
 	def on_ebMain_focus_out_event(self, box, whatever):
-		box.grab_focus()
+		# box.grab_focus()
+		pass
 	
 	
 	def dpad_update(self, widget, event):

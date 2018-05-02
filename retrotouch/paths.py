@@ -21,6 +21,6 @@ def get_share_path():
 	"""
 	if "SHARED" in os.environ:
 		return os.environ["SHARED"]
-	if os.path.exists("/usr/local/share/scc/"):
-		return "/usr/local/share/scc/"
-	return "/usr/share/scc/"
+	if os.path.exists("/usr/local/share/retrotouch/"):
+		return "/usr/local/share/retrotouch/"
+	return "/usr/share/retrotouch/"

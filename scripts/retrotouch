@@ -12,7 +12,6 @@ if __name__ == "__main__":
 	gi.require_version('Gtk', '3.0') 
 	gi.require_version('GdkX11', '3.0') 
 	gi.require_version('Rsvg', '2.0') 
-	gi.require_version('Retro', '0.10') 
 	
 	from retrotouch.tools import init_logging, set_logging_level
 	init_logging()
@@ -20,11 +19,10 @@ if __name__ == "__main__":
 
 	from gi.repository import Gtk, GObject
 	from retrotouch.paths import get_share_path
-	glades = os.path.join(get_share_path(), "glade")
-	images = os.path.join(get_share_path(), "images")
+	respath = os.path.join(get_share_path())
 	if Gtk.IconTheme.get_default():
-		Gtk.IconTheme.get_default().append_search_path(images)
+		Gtk.IconTheme.get_default().append_search_path(respath)
 	GObject.threads_init()
 	
 	from retrotouch.app import App
-	App(glades, images).run(sys.argv)
+	App(respath).run(sys.argv)

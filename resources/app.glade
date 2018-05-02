@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.0 -->
+<!-- Generated with glade 3.20.4 -->
 <interface>
   <requires lib="gtk+" version="3.14"/>
   <object class="GtkListStore" id="lstFilter">
@@ -36,28 +36,6 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <child>
-          <object class="GtkEventBox" id="ebMain">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="has_focus">True</property>
-            <property name="is_focus">True</property>
-            <property name="can_default">True</property>
-            <property name="has_default">True</property>
-            <property name="events">GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
-            <property name="hexpand">True</property>
-            <property name="vexpand">True</property>
-            <property name="above_child">True</property>
-            <signal name="focus-out-event" handler="on_ebMain_focus_out_event" swapped="no"/>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="top_attach">2</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkRevealer" id="rvToolbar">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -70,12 +48,11 @@
                 <property name="spacing">5</property>
                 <property name="layout_style">center</property>
                 <child>
-                  <object class="GtkToggleButton" id="btDisplay">
+                  <object class="GtkButton" id="btDisplay">
                     <property name="label" translatable="yes">Display</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
-                    <signal name="toggled" handler="on_btDisplay_toggled" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">True</property>
@@ -119,56 +96,6 @@
           </packing>
         </child>
         <child>
-          <object class="GtkRevealer" id="rvDisplaySettings">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <object class="GtkButtonBox" id="bbDisplaySettings">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="margin_top">5</property>
-                <property name="margin_bottom">5</property>
-                <property name="layout_style">center</property>
-                <child>
-                  <object class="GtkLabel" id="lblSharp">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Sharpen</property>
-                    <property name="xalign">0</property>
-                    <attributes>
-                      <attribute name="weight" value="bold"/>
-                    </attributes>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkSwitch" id="swSharp">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="margin_left">10</property>
-                    <signal name="activate" handler="on_swSharp_activate" swapped="no"/>
-                    <signal name="state-set" handler="on_swSharp_activate" swapped="no"/>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="left_attach">0</property>
-            <property name="top_attach">1</property>
-            <property name="width">3</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkRevealer" id="rvLeft">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -190,7 +117,7 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">2</property>
+            <property name="top_attach">1</property>
           </packing>
         </child>
         <child>
@@ -215,7 +142,39 @@
           </object>
           <packing>
             <property name="left_attach">2</property>
-            <property name="top_attach">2</property>
+            <property name="top_attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkAspectFrame" id="afMain">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="hexpand">True</property>
+            <property name="vexpand">True</property>
+            <property name="label_xalign">0</property>
+            <property name="shadow_type">none</property>
+            <child>
+              <object class="GtkEventBox" id="ebMain">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="has_focus">True</property>
+                <property name="is_focus">True</property>
+                <property name="can_default">True</property>
+                <property name="has_default">True</property>
+                <property name="events">GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+                <property name="above_child">True</property>
+                <signal name="focus-out-event" handler="on_ebMain_focus_out_event" swapped="no"/>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="top_attach">1</property>
           </packing>
         </child>
       </object>
