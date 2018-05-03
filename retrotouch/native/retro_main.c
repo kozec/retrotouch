@@ -28,9 +28,8 @@ void rt_set_error(LibraryData* data, const char* message) {
 
 static gboolean on_render(GtkGLArea* da, GdkGLContext* context, LibraryData* data) {
 	if (data->private->hw_render_state == HW_RENDER_NEEDS_RESET) {
-		rt_core_context_reset(data);
-		data->private->hw_render_state = HW_RENDER_READY;
-	} else if (data->private->hw_render_state == HW_RENDER_DISABLED) {
+		rt_hw_render_reset(data);
+	} else {
 		rt_render(data);
 	}
 	return TRUE;
@@ -38,8 +37,12 @@ static gboolean on_render(GtkGLArea* da, GdkGLContext* context, LibraryData* dat
 
 
 static gboolean on_resize(GtkGLArea* da, gint width, gint height, LibraryData* data) {
-	if ((data->private->program == 0) && (data->private->error[0] == 0))
+	data->private->da_width = width;
+	data->private->da_height = height;
+	if ((data->private->vao == 0) && (data->private->error[0] == 0))
 		rt_init_gl(data);
+	if ((data->private->program == 0) && (data->private->error[0] == 0))
+		rt_compile_shaders(data);
 	return TRUE;
 }
 
@@ -75,14 +78,12 @@ const char* rt_check_error(LibraryData* data) {
 }
 
 
-void rt_set_render_size(LibraryData* data, int width, int height) {
+void rt_compute_size_request(LibraryData* data) {
+	double aspect = (double)data->private->frame_height / (double)data->private->frame_width;
+	guint width = MIN(data->private->frame_width, 100);
+	// TODO: Maybe test if computing with height would not be better
+	guint height = (guint)((double)width * aspect);
 	gtk_widget_set_size_request(data->private->da, width, height);
-	if (data->private->hw_render_state == HW_RENDER_READY) {
-		GdkGLContext* glctx = gtk_gl_area_get_context(GTK_GL_AREA(data->private->da));
-		gdk_gl_context_make_current(glctx);
-		glViewport(0, 0, width, height);
-	}
-	LOG(RETRO_LOG_DEBUG, "Screen size set to %ix%i", width, height);
 }
 
 
@@ -130,15 +131,19 @@ int rt_create(LibraryData* data) {
 	gtk_gl_area_set_has_depth_buffer(GTK_GL_AREA(da), FALSE);
 	gtk_gl_area_set_has_stencil_buffer(GTK_GL_AREA(da), FALSE);
 	gtk_container_add(GTK_CONTAINER(data->parent), da);
-	gtk_widget_set_size_request(da, 640, 480);
 	g_signal_connect(da, "render", (GCallback)on_render, data);
 	g_signal_connect(da, "resize", (GCallback)on_resize, data);
 	data->private->error[0] = 0;
 	data->private->hw_render_state = HW_RENDER_DISABLED;
 	data->private->program = 0;
+	data->private->frame_width = 640;
+	data->private->frame_height = 480;
+	data->private->vao = 0;
+	data->private->fbo = 0;
 	data->private->frame = NULL;
 	data->private->tick_id = 0;
 	data->private->last_frame = 0;
+	rt_compute_size_request(data);
 	LOG(RETRO_LOG_DEBUG, "Native code ready");
 	return 0;
 }

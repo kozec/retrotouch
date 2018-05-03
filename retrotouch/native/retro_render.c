@@ -29,8 +29,39 @@ static const struct vertex_info vertex_data[] = {
 
 
 void rt_init_gl(LibraryData* data) {
-	PrivateData* private = data->private;
-	GLuint buffer;
+	// Generate and fill buffers
+	glGenVertexArrays(1, &(data->private->vao));
+	glBindVertexArray(data->private->vao);
+	glGenBuffers(1, &data->private->vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, data->private->vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+	
+	// Prepare texture
+	glEnable(GL_TEXTURE_2D);
+	glGenTextures(1, &(data->private->texture));
+	glBindTexture(GL_TEXTURE_2D, data->private->texture);
+	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, 1024, 768, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	
+	// Cleanup
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindVertexArray(0);
+	LOG(RETRO_LOG_DEBUG, "GL initialized");
+}
+
+
+void rt_compile_shaders(LibraryData* data) {
+	// Prepare #defines
+	const char const* defines[] = {
+		data->private->colorspace,
+		NULL,
+		NULL
+	};
+	if (data->private->hw_render_state != HW_RENDER_DISABLED)
+		defines[1] = "HW_RENDERING";
+	
 	// Load shader
 	char* shader_name = malloc(strlen(data->respath) + 100);
 	if (shader_name == NULL) {
@@ -39,7 +70,7 @@ void rt_init_gl(LibraryData* data) {
 	}
 	strcpy(shader_name, data->respath);
 	strcat(shader_name, "/normal");
-	if (0 != load_shader_program(shader_name, &(private->program))) {
+	if (0 != load_shader_program(shader_name, defines, &(data->private->program))) {
 		free(shader_name);
 		rt_set_error(data, "Failed to compile shaders");
 		return;
@@ -47,52 +78,27 @@ void rt_init_gl(LibraryData* data) {
 	free(shader_name);
 	
 	// Grab locations
-	GLuint pos = glGetAttribLocation(private->program, "position");
-	GLuint col = glGetAttribLocation(private->program, "color");
-	
-	// Generate and fill buffers
-	glGenVertexArrays(1, &(private->vao));
-	glBindVertexArray(private->vao);
-	glGenBuffers(1, &buffer);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+	GLuint pos = glGetAttribLocation(data->private->program, "position");
+	GLuint col = glGetAttribLocation(data->private->program, "color");
 	
 	// Enable attributes
+	glBindVertexArray(data->private->vao);
+	glBindBuffer(GL_ARRAY_BUFFER, data->private->vbo);
 	glEnableVertexAttribArray(pos);
 	glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex_info), 0);
 	
 	glEnableVertexAttribArray(col);
 	glVertexAttribPointer(col, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex_info),
 							(void*)(sizeof(GLfloat) * 3));
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 	
 	// Grab locations
-	private->u_texture = glGetUniformLocation(private->program, "texture");
-	private->u_input_size = glGetUniformLocation(private->program, "input_size");
-	private->u_output_size = glGetUniformLocation(private->program, "output_size");
+	data->private->u_texture = glGetUniformLocation(data->private->program, "texture");
+	data->private->u_input_size = glGetUniformLocation(data->private->program, "input_size");
+	data->private->u_output_size = glGetUniformLocation(data->private->program, "output_size");
 	
-	// Prepare FBO
-	glGenFramebuffers(1, &(private->fbo));
-	glBindFramebuffer(GL_FRAMEBUFFER, private->fbo);
-	
-	// Prepare texture
-	glEnable(GL_TEXTURE_2D);
-	glGenTextures(1, &(private->texture));
-	glBindTexture(GL_TEXTURE_2D, private->texture);
-	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, 1024, 768, 0,GL_RGB, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, private->texture, 0);
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		printf("Failed to initialize FBO\n");
-		exit(1);
-	}
-	
-	// Cleanup
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glBindVertexArray(0);
-	glDeleteBuffers(1, &buffer);
+	LOG(RETRO_LOG_DEBUG, "Shaders loaded");
 }
 
 
@@ -119,6 +125,7 @@ void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsign
 
 
 void rt_render(LibraryData* data) {
+	glViewport(0, 0, data->private->da_width, data->private->da_height);
 	glClearColor(0.0, 0.0, 0.5, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 	
@@ -126,6 +133,7 @@ void rt_render(LibraryData* data) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, data->private->texture);
 	glUniform1i(data->private->u_texture, 0);
+	// (data->private->hw_render_state == HW_RENDER_DISABLED)
 	// data.u_input_size = glGetUniformLocation(data.program, "input_size");
 	// data.u_output_size = glGetUniformLocation(data.program, "output_size");
 	
@@ -138,6 +146,29 @@ void rt_render(LibraryData* data) {
 }
 
 
+void rt_set_render_size(LibraryData* data, int width, int height) {
+	data->private->frame_width = width;
+	data->private->frame_height = height;
+	rt_compute_size_request(data);
+	if (data->private->fbo != 0) {
+		// Resolution changed after FBO is initialized, we need
+		// to change its resolution as well
+		glBindFramebuffer(GL_FRAMEBUFFER, data->private->fbo);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, data->private->texture);
+		glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, data->private->frame_width,
+				data->private->frame_height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+				data->private->texture, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+	LOG(RETRO_LOG_DEBUG, "Screen size set to %ix%i", width, height);
+}
+
+
 int rt_hw_render_setup(LibraryData* data) {
 	if (data->private->hw_render_state != HW_RENDER_DISABLED)
 		return 0;		// Already enabled or setting up
@@ -145,4 +176,31 @@ int rt_hw_render_setup(LibraryData* data) {
 	data->private->hw_render_state = HW_RENDER_NEEDS_RESET;
 	gtk_gl_area_queue_render(GTK_GL_AREA(data->private->da));
 	return 0;
+}
+
+
+void rt_hw_render_reset(LibraryData* data) {
+	if (data->private->fbo == 0) {
+		glGenFramebuffers(1, &data->private->fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, data->private->fbo);
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, data->private->texture);
+		glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, data->private->frame_width,
+				data->private->frame_height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+				data->private->texture, 0);
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			rt_set_error(data, "Failed to initialize frame buffer");
+			// Going with HW_RENDER_READY anyway, rendering will get _totally_ broken,
+			// but at least program will not crash.
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+	
+	rt_core_context_reset(data);
+	data->private->hw_render_state = HW_RENDER_READY;
+	LOG(RETRO_LOG_DEBUG, "HW rendering set up.");
 }

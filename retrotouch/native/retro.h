@@ -21,18 +21,23 @@ typedef struct {
 	const char* frame;
 	unsigned int frame_width;
 	unsigned int frame_height;
+	unsigned int da_width;
+	unsigned int da_height;
 	enum HwRenderState hw_render_state;
 	guint tick_id;
 	
 	GLuint program;
 	GLfloat input_size[2];
 	GLfloat output_size[2];
+	const char* colorspace;
+	bool flipped;
 	GLuint texture;
 	GLuint fbo;
 	GLuint u_texture;
 	GLuint u_input_size;
 	GLuint u_output_size;
 	GLuint vao;
+	GLuint vbo;
 	GLuint last_frame;
 } PrivateData;
 
@@ -51,12 +56,20 @@ void rt_set_error(LibraryData* data, const char* message);
 void rt_init_gl(LibraryData* data);
 void rt_render(LibraryData* data);
 
+void rt_compile_shaders(LibraryData* data);
+
 // Callback called when core decides on desired screen size
 void rt_set_render_size(LibraryData* data, int width, int height);
 // Callback called when core has video frame ready
 void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsigned height, size_t pitch);
 // Callback called when core requests HW rendering. Returns 0 for success
 int rt_hw_render_setup(LibraryData* data);
+// Called from event after rt_hw_render_setup is called and gl contect
+// can be acquired, or when render resolution is changed
+void rt_hw_render_reset(LibraryData* data);
+// Computes and sets size_request based on frame_width and height.
+// That is, at least 100px width and height while keeping aspect ratio
+void rt_compute_size_request(LibraryData* data);
 
 // Signalizes to core that GL context has been reset (used with HW rendering)
 void rt_core_context_reset(LibraryData* data);

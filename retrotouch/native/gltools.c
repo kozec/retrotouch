@@ -36,7 +36,7 @@ int create_shader(int shader_type, const char* source, GLuint* shader) {
 }
 
 
-int load_shader(int shader_type, const char* filename, GLuint* shader) {
+int load_shader(int shader_type, const char* const defines[], const char* filename, GLuint* shader) {
 	FILE* f = fopen(filename, "r");
 	if (f == NULL) {
 		fprintf(stderr, "Failed to open shader file: %s\n", filename);
@@ -45,10 +45,15 @@ int load_shader(int shader_type, const char* filename, GLuint* shader) {
 	
 	fseek(f, 0L, SEEK_END);
 	size_t filesize = ftell(f);
+	size_t total_size = filesize + 10;
+	for (int i=0; defines[i] != NULL; i++)
+		total_size += strlen(defines[i]) + 12;
 	rewind(f);
 	
 	char* source = malloc(filesize + 1);
-	if (source == NULL) {
+	char* preprocessed = malloc(total_size + 1);
+	if ((source == NULL) || (preprocessed == NULL)) {
+		free(source); free(preprocessed);
 		fclose(f);
 		fprintf(stderr, "OOM while loading shader file: %s\n", filename);
 		return 3;
@@ -56,21 +61,34 @@ int load_shader(int shader_type, const char* filename, GLuint* shader) {
 	
 	if (fread(source, filesize, 1, f) < 1) {
 		fclose(f);
-		free(source);
+		free(source); free(preprocessed);
 		fprintf(stderr, "Failed to load shader file: %s\n", filename);
 		return 4;
 	}
 	
 	fclose(f);
 	source[filesize] = 0;
+	char* first_newline = strstr(source, "\n");
+	*first_newline = 0;
 	
-	int rv = create_shader(shader_type, source, shader);
+	strcpy(preprocessed, source);				// #version
+	strcat(preprocessed, "\n");					// newline
+	for (int i=0; defines[i] != NULL; i++) {	// #defines
+		strcat(preprocessed, "#define ");
+		strcat(preprocessed, defines[i]);
+		strcat(preprocessed, "\n");
+	}
+	strcat(preprocessed, "#line 1\n");
+	strcat(preprocessed, first_newline + 1);
 	free(source);
+	
+	int rv = create_shader(shader_type, preprocessed, shader);
+	free(preprocessed);
 	return rv;
 }
 
 
-int load_shader_program(const char* prefix, GLuint* program) {
+int load_shader_program(const char* prefix, const char* const defines[], GLuint* program) {
 	int err, status = GL_TRUE;
 	GLuint vshader, fshader;
 	char* filenamebuff = malloc(strlen(prefix) + 16);
@@ -81,7 +99,7 @@ int load_shader_program(const char* prefix, GLuint* program) {
 	
 	strcpy(filenamebuff, prefix);
 	strcat(filenamebuff, ".vertex.glsl");
-	err = load_shader(GL_VERTEX_SHADER, filenamebuff, &vshader);
+	err = load_shader(GL_VERTEX_SHADER, defines, filenamebuff, &vshader);
 	if (err != 0) {
 		free(filenamebuff);
 		return err;
@@ -89,7 +107,7 @@ int load_shader_program(const char* prefix, GLuint* program) {
 	
 	strcpy(filenamebuff, prefix);
 	strcat(filenamebuff, ".fragment.glsl");
-	err = load_shader(GL_FRAGMENT_SHADER, filenamebuff, &fshader);
+	err = load_shader(GL_FRAGMENT_SHADER, defines, filenamebuff, &fshader);
 	if (err != 0) {
 		glDeleteShader(vshader);
 		free(filenamebuff);

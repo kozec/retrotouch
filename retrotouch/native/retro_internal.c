@@ -36,7 +36,7 @@ static LibraryData* current;
 
 
 static uintptr_t video_driver_get_current_framebuffer() {
-	return 1;
+	return current->private->fbo;
 }
 
 
@@ -64,21 +64,14 @@ static void core_log(enum retro_log_level level, const char *fmt, ...) {
 
 static bool video_set_pixel_format(unsigned format) {
 	switch (format) {
-	case RETRO_PIXEL_FORMAT_0RGB1555:
-		LOG(RETRO_LOG_DEBUG, "Pixel format set to 0RGB1555");
-		break;
-	case RETRO_PIXEL_FORMAT_XRGB8888:
-		LOG(RETRO_LOG_DEBUG, "Pixel format set to XRGB8888");
-		break;
-	case RETRO_PIXEL_FORMAT_RGB565:
-		LOG(RETRO_LOG_DEBUG, "Pixel format set to RGB565");
-		break;
-	default:
-		LOG(RETRO_LOG_ERROR, "Unknown pixel type %u", format);
-		rt_set_error(current, "Unknown pixel format");
-		return FALSE;
+		case RETRO_PIXEL_FORMAT_XRGB8888:
+			current->private->colorspace = "COLORSPACE_RGB";
+			LOG(RETRO_LOG_DEBUG, "Pixel format set to XRGB8888");
+			return TRUE;
 	}
-	return TRUE;
+	LOG(RETRO_LOG_ERROR, "Unknown pixel type %u", format);
+	rt_set_error(current, "Unknown pixel format");
+	return FALSE;
 }
 
 
