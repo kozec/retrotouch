@@ -21,15 +21,16 @@ class App(Gtk.Application):
 	
 	HILIGHT = "#FF0000"
 	DEFAULT_MAPPINGS = {
-		Gdk.KEY_Return:		1 << 1,
-		Gdk.KEY_Shift_R:	1 << 2,
-		Gdk.KEY_Up:			1 << 3,
-		Gdk.KEY_Down:		1 << 4,
-		Gdk.KEY_Left:		1 << 5,
-		Gdk.KEY_Right:		1 << 6,
-		Gdk.KEY_z:			1 << 7,
-		Gdk.KEY_y:			1 << 8,
-		Gdk.KEY_x:			1 << 9,
+		Gdk.KEY_Return:		2,	# RETRO_DEVICE_ID_JOYPAD_SELECT
+		Gdk.KEY_Shift_R:	3,	# RETRO_DEVICE_ID_JOYPAD_START
+		Gdk.KEY_Up:			4,	# RETRO_DEVICE_ID_JOYPAD_UP
+		Gdk.KEY_Down:		5,	# RETRO_DEVICE_ID_JOYPAD_DOWN
+		Gdk.KEY_Left:		6,	# RETRO_DEVICE_ID_JOYPAD_LEFT
+		Gdk.KEY_Right:		7,	# RETRO_DEVICE_ID_JOYPAD_RIGHT
+		Gdk.KEY_z:			8,	# RETRO_DEVICE_ID_JOYPAD_A
+		Gdk.KEY_x:			0,	# RETRO_DEVICE_ID_JOYPAD_B
+		Gdk.KEY_a:			9,	# RETRO_DEVICE_ID_JOYPAD_X
+		Gdk.KEY_s:			1,	# RETRO_DEVICE_ID_JOYPAD_Y
 	}
 	
 	TOUCH_MAPPINGS = {
@@ -87,8 +88,8 @@ class App(Gtk.Application):
 		self.wrapper = Wrapper(self.respath, box)
 		self.window.show_all()
 		
-		GLib.idle_add(self.select_core, "./Danganronpa [EN][v1.0][Full].iso")
-		# GLib.idle_add(self.select_core, "./Super Mario Bros (E).nes")
+		# GLib.idle_add(self.select_core, "./Danganronpa [EN][v1.0][Full].iso")
+		GLib.idle_add(self.select_core, "./Super Mario Bros (E).nes")
 	
 	
 	def select_core(self, game_filename):
@@ -163,7 +164,7 @@ class App(Gtk.Application):
 	
 	
 	def dpad_update(self, widget, event):
-		""" Special case so dpad 'buttons' blings nicelly """
+		""" Special case so dpad 'buttons' blinks nicelly """
 		x, y, width, height = widget.get_area_position("DPAD")
 		x = event.x - x
 		y = event.y - y
@@ -172,35 +173,35 @@ class App(Gtk.Application):
 		if y > height * 0.25 and y < height * 0.75:
 			if x > width * 0.5:
 				self.hilights["DPAD1"] = "DPAD_RIGHT"
-				self.input.state |= App.TOUCH_MAPPINGS["DPAD_RIGHT"]
-				self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_LEFT"]
+				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_RIGHT"], True)
+				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_LEFT"], False)
 				update = True
 			else:
 				self.hilights["DPAD1"] = "DPAD_LEFT"
-				self.input.state |= App.TOUCH_MAPPINGS["DPAD_LEFT"]
-				self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_RIGHT"]
+				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_LEFT"], True)
+				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_RIGHT"], False)
 				update = True
 		elif "DPAD1" in self.hilights:
 			del self.hilights["DPAD1"]
-			self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_LEFT"]
-			self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_RIGHT"]
+			self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_LEFT"], True)
+			self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_RIGHT"], False)
 			update = True
 		
 		if x > width * 0.25 and x < width * 0.75:
 			if y > height * 0.5:
 				self.hilights["DPAD2"] = "DPAD_DOWN"
-				self.input.state |= App.TOUCH_MAPPINGS["DPAD_DOWN"]
-				self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_UP"]
+				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_DOWN"], True)
+				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_UP"], False)
 				update = True
 			else:
 				self.hilights["DPAD2"] = "DPAD_UP"
-				self.input.state |= App.TOUCH_MAPPINGS["DPAD_UP"]
-				self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_DOWN"]
+				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_UP"], True)
+				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_DOWN"], False)
 				update = True
 		elif "DPAD2" in self.hilights:
 			del self.hilights["DPAD2"]
-			self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_UP"]
-			self.input.state &= ~App.TOUCH_MAPPINGS["DPAD_DOWN"]
+			self.wrapper.set_button(~App.TOUCH_MAPPINGS["DPAD_UP"], True)
+			self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_DOWN"], False)
 			update = True
 		
 		if update:
@@ -212,7 +213,8 @@ class App(Gtk.Application):
 			del self.hilights["DPAD1"]
 		if "DPAD2" in self.hilights:
 			del self.hilights["DPAD2"]
-		self.input.state &= ~App.DPAD_DIRECTIONS
+		for i in App.DPAD_DIRECTIONS:
+			self.wrapper.set_button(i, False)
 	
 	
 	def on_touch_event(self, widget, event):
@@ -225,7 +227,7 @@ class App(Gtk.Application):
 				else:
 					widget.hilight({ a : self.HILIGHT for (trash, a) in self.hilights.items() })
 				if a in App.TOUCH_MAPPINGS:
-					self.input.state |= App.TOUCH_MAPPINGS[a]
+					self.wrapper.set_button(App.TOUCH_MAPPINGS[a], True)
 		elif event.type == Gdk.EventType.TOUCH_UPDATE:
 			if self.hilights.get(event.sequence) == "DPAD":
 				self.dpad_update(widget, event)
@@ -235,18 +237,18 @@ class App(Gtk.Application):
 				if a == "DPAD": self.dpad_cancel()
 				del self.hilights[event.sequence]
 				if a in App.TOUCH_MAPPINGS:
-					self.input.state &= ~App.TOUCH_MAPPINGS[a]
+					self.wrapper.set_button(App.TOUCH_MAPPINGS[a], False)
 				widget.hilight({ a : self.HILIGHT for (trash, a) in self.hilights.items() })
 	
 	
 	def on_window_key_press_event(self, window, event):
 		if event.keyval in App.DEFAULT_MAPPINGS:
-			self.input.state |= App.DEFAULT_MAPPINGS[event.keyval]
+			self.wrapper.set_button(App.DEFAULT_MAPPINGS[event.keyval], True)
 	
 	
 	def on_window_key_release_event(self, window, event):
 		if event.keyval in App.DEFAULT_MAPPINGS:
-			self.input.state &= ~App.DEFAULT_MAPPINGS[event.keyval]
+			self.wrapper.set_button(App.DEFAULT_MAPPINGS[event.keyval], False)
 	
 	
 	def do_command_line(self, cl):

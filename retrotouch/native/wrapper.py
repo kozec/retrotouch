@@ -58,9 +58,14 @@ class Wrapper:
 		return self._lib.rt_get_game_loaded(self._libdata) == 1
 	
 	
+	def set_button(self, button, pressed):
+		self._lib.rt_set_button(self._libdata, ctypes.c_uint32(button), ctypes.c_int(pressed))
+	
+	
 	def load_core(self, filename):
 		assert self._lib.rt_check_error(self._libdata) is None, "Error detected"
 		assert 0 == self._lib.rt_core_load(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
+	
 	
 	def load_game(self, filename):
 		assert self._lib.rt_check_error(self._libdata) is None, "Error detected"

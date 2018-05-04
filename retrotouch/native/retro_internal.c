@@ -89,6 +89,7 @@ static bool core_environment(unsigned cmd, void* data) {
 		*bval = TRUE;
 		break;
 	
+	
 	case RETRO_ENVIRONMENT_SET_VARIABLES:
 		// LOG(RETRO_LOG_DEBUG, "Unhandled RETRO_ENVIRONMENT_SET_VARIABLES");
 		return FALSE;
@@ -130,6 +131,13 @@ static bool core_environment(unsigned cmd, void* data) {
 		cb->get_proc_address        = NULL; // video_driver_get_proc_address;
 		memcpy(&current->core->hw_render_callback, cb, sizeof(struct retro_hw_render_callback));
 		return 0 == rt_hw_render_setup(current);
+	
+	case RETRO_ENVIRONMENT_SET_CONTROLLER_INFO: {
+		const struct retro_controller_info* controller_info = (struct retro_controller_info*)data;
+		LOG(RETRO_LOG_DEBUG, "Unhandled env RETRO_ENVIRONMENT_SET_CONTROLLER_INFO", cmd);
+		return FALSE;
+	}
+	
 	}
 	
 	default:
@@ -147,11 +155,13 @@ static void core_video_refresh(const void* frame, unsigned width, unsigned heigh
 
 
 static void core_input_poll(void) {
-	
+	// pass
 }
 
 
 static int16_t core_input_state(unsigned port, unsigned device, unsigned index, unsigned id) {
+	if (port <= RT_MAX_PORTS)
+		return (current->private->controller_state[port] & (1<<id)) ? 1 : 0;
 	return 0;
 }
 

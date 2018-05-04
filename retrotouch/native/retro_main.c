@@ -114,6 +114,14 @@ int rt_set_paused(LibraryData* data, int paused) {
 }
 
 
+void rt_set_button(LibraryData* data, uint32_t button, int pressed) {
+	if (pressed)
+		data->private->controller_state[0] |= 1 << button;
+	else
+		data->private->controller_state[0] &= ~(1 << button);
+}
+
+
 int rt_create(LibraryData* data) {
 	GtkWidget* da;
 	if (GTK_CONTAINER(data->parent) == NULL)
@@ -133,6 +141,8 @@ int rt_create(LibraryData* data) {
 	gtk_container_add(GTK_CONTAINER(data->parent), da);
 	g_signal_connect(da, "render", (GCallback)on_render, data);
 	g_signal_connect(da, "resize", (GCallback)on_resize, data);
+	for (int i=0; i<RT_MAX_PORTS; i++)
+		data->private->controller_state[i] = 0;
 	data->private->error[0] = 0;
 	data->private->hw_render_state = HW_RENDER_DISABLED;
 	data->private->program = 0;

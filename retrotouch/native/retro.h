@@ -6,6 +6,7 @@
 #include <gtk/gtkwidget.h>
 #include <libretro.h>
 
+#define RT_MAX_PORTS	4
 struct CoreData;
 
 enum HwRenderState {
@@ -23,6 +24,7 @@ typedef struct {
 	unsigned int frame_height;
 	unsigned int da_width;
 	unsigned int da_height;
+	uint32_t controller_state[RT_MAX_PORTS];
 	enum HwRenderState hw_render_state;
 	guint tick_id;
 	
@@ -49,6 +51,7 @@ typedef struct {
 	struct CoreData* core;
 	PrivateData* private;
 } LibraryData;
+
 
 void rt_log(LibraryData* data, const char* tag, enum retro_log_level level, const char *fmt, ...);
 void rt_set_error(LibraryData* data, const char* message);
