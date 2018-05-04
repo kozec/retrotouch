@@ -40,6 +40,7 @@ static gboolean on_resize(GtkGLArea* da, gint width, gint height, LibraryData* d
 	data->private->da_width = width;
 	data->private->da_height = height;
 	if ((data->private->vao == 0) && (data->private->error[0] == 0))
+		// TODO: Maybe use realize for gl init
 		rt_init_gl(data);
 	if ((data->private->program == 0) && (data->private->error[0] == 0))
 		rt_compile_shaders(data);
@@ -47,26 +48,13 @@ static gboolean on_resize(GtkGLArea* da, gint width, gint height, LibraryData* d
 }
 
 
-static gboolean tick_callback(GtkGLArea* da, GdkFrameClock* frame_clock, LibraryData* data) {
+static gboolean tick_callback(LibraryData* data) {
 	if (data->private->hw_render_state == HW_RENDER_NEEDS_RESET) {
 		return TRUE;
 	} else if (data->private->hw_render_state == HW_RENDER_READY) {
-		GdkGLContext* glctx = gtk_gl_area_get_context(GTK_GL_AREA(data->private->da));
-		gdk_gl_context_make_current(glctx);
+		gtk_gl_area_make_current(GTK_GL_AREA(data->private->da));
 	}
-	gint64 frame = gdk_frame_clock_get_frame_counter(frame_clock);
-	// Following should keep retro core running roughly at 60FPS,
-	// skipping frames when GTK falls behind.
-	if (frame < data->private->last_frame) {
-		// Overflow
-		rt_core_step(data);
-		data->private->last_frame = frame;
-	} else {
-		while (data->private->last_frame < frame) {
-			rt_core_step(data);
-			data->private->last_frame ++;
-		}
-	}
+	rt_core_step(data);
 	return TRUE;
 }
 
@@ -89,20 +77,22 @@ void rt_compute_size_request(LibraryData* data) {
 
 int rt_set_paused(LibraryData* data, int paused) {
 	if (rt_get_game_loaded(data)) {
-		int paused_now = (data->private->tick_id == 0) ? 1 : 0;
+		int paused_now = (data->private->loop_id == 0) ? 1 : 0;
 		if (paused == paused_now) {
 			return 0;		// Already in correct state
 		} else if (paused) {
 			// Core is running but it should be paused
-			gtk_widget_remove_tick_callback(data->private->da, data->private->tick_id);
-			data->private->tick_id = 0;
+			g_source_remove(data->private->loop_id);
+			data->private->loop_id = 0;
 			LOG(RETRO_LOG_DEBUG, "Core paused");
 			return 0;
 		} else {
 			// Core is paused and it should be resumed
-			data->private->tick_id = gtk_widget_add_tick_callback(data->private->da,
-					(GtkTickCallback)tick_callback, data, NULL);
-			if (data->private->tick_id < 1)
+			guint fps = 60;		// TODO: Configurable / provided by core
+			data->private->loop_id = g_timeout_add_full (
+					G_PRIORITY_DEFAULT, (1000 / fps),
+					(GSourceFunc) tick_callback, data, NULL);
+			if (data->private->loop_id < 1)
 				return 1; // failed
 			LOG(RETRO_LOG_DEBUG, "Core resumed");
 			return 0;
@@ -143,16 +133,18 @@ int rt_create(LibraryData* data) {
 	g_signal_connect(da, "resize", (GCallback)on_resize, data);
 	for (int i=0; i<RT_MAX_PORTS; i++)
 		data->private->controller_state[i] = 0;
+	data->private->fps.since = 0;
 	data->private->error[0] = 0;
 	data->private->hw_render_state = HW_RENDER_DISABLED;
 	data->private->program = 0;
 	data->private->frame_width = 640;
 	data->private->frame_height = 480;
+	data->private->da_width = 320;
+	data->private->da_height = 200;
 	data->private->vao = 0;
 	data->private->fbo = 0;
 	data->private->frame = NULL;
-	data->private->tick_id = 0;
-	data->private->last_frame = 0;
+	data->private->loop_id = 0;
 	rt_compute_size_request(data);
 	LOG(RETRO_LOG_DEBUG, "Native code ready");
 	return 0;

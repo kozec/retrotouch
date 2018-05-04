@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 #define GL_GLEXT_PROTOTYPES 1
 #include <GL/gl.h>
 #include <GL/glx.h>
@@ -102,23 +103,36 @@ void rt_compile_shaders(LibraryData* data) {
 }
 
 
+uint64_t get_time() {
+	static struct timeval t;
+	gettimeofday(&t, NULL);
+	return (t.tv_sec * (uint64_t)1000) + (t.tv_usec / 1000);
+}
+
+
 void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsigned height, size_t pitch) {
+	// gtk_gl_area_queue_render(GTK_GL_AREA(data->private->da));
+	// return;
 	if (frame == NULL)
 		return;
+#if DEBUG_FPS
+	data->private->fps.generated ++;
+#endif
 	if (frame == RETRO_HW_FRAME_BUFFER_VALID) {
-		glFlush();
+		// glFlush();
 		gtk_gl_area_queue_render(GTK_GL_AREA(data->private->da));
 		return;
 	}
-	data->private->frame_width = width;
-	data->private->frame_height = height;
-	data->private->frame = frame;
+	// data->private->frame_width = width;
+	// data->private->frame_height = height;
+	// data->private->frame = frame;
 	
 	glBindTexture(GL_TEXTURE_2D, data->private->texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
 		width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, frame);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	
 	gtk_gl_area_queue_render(GTK_GL_AREA(data->private->da));
 }
@@ -127,22 +141,36 @@ void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsign
 void rt_render(LibraryData* data) {
 	glViewport(0, 0, data->private->da_width, data->private->da_height);
 	glClearColor(0.0, 0.0, 0.5, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glUseProgram(data->private->program);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, data->private->texture);
 	glUniform1i(data->private->u_texture, 0);
-	// (data->private->hw_render_state == HW_RENDER_DISABLED)
-	// data.u_input_size = glGetUniformLocation(data.program, "input_size");
-	// data.u_output_size = glGetUniformLocation(data.program, "output_size");
 	
 	glBindVertexArray(data->private->vao);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	glBindVertexArray(0);
 	glUseProgram(0);
 	
-	glFlush();
+#if DEBUG_FPS
+	uint64_t now = get_time();
+	if ((data->private->fps.since == 0) || (now > data->private->fps.since + 1000)) {
+		if (data->private->fps.since > 0) {
+			uint64_t delta = now - data->private->fps.since;
+			uint64_t ticks = data->private->fps.ticks * 1000 / delta;
+			uint64_t drawn = data->private->fps.drawn * 1000 / delta;
+			uint64_t generated = data->private->fps.generated * 1000 / delta;
+			LOG(RETRO_LOG_DEBUG, "FPS: %u ticks %u drawn %u generated", ticks, drawn, generated);
+		}
+		data->private->fps.since = now;
+		data->private->fps.drawn = 1;
+		data->private->fps.ticks = 0;
+		data->private->fps.generated = 0;
+	} else {
+		data->private->fps.drawn ++;
+	}
+#endif
 }
 
 

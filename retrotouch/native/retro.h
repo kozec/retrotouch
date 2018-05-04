@@ -7,6 +7,7 @@
 #include <libretro.h>
 
 #define RT_MAX_PORTS	4
+#define DEBUG_FPS		0
 struct CoreData;
 
 enum HwRenderState {
@@ -26,7 +27,14 @@ typedef struct {
 	unsigned int da_height;
 	uint32_t controller_state[RT_MAX_PORTS];
 	enum HwRenderState hw_render_state;
-	guint tick_id;
+	guint loop_id;
+	
+	struct {
+		uint64_t since;
+		uint64_t drawn;
+		uint64_t ticks;
+		uint64_t generated;
+	} fps;
 	
 	GLuint program;
 	GLfloat input_size[2];
@@ -40,7 +48,6 @@ typedef struct {
 	GLuint u_output_size;
 	GLuint vao;
 	GLuint vbo;
-	GLuint last_frame;
 } PrivateData;
 
 
