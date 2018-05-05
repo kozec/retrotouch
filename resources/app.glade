@@ -169,7 +169,10 @@
                 <property name="above_child">True</property>
                 <signal name="focus-out-event" handler="on_ebMain_focus_out_event" swapped="no"/>
                 <child>
-                  <placeholder/>
+                  <object class="GtkSocket" id="socket">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
                 </child>
               </object>
             </child>

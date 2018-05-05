@@ -1,4 +1,4 @@
-#version 150
+#version 130
 in vec2 uv;
 uniform sampler2D texture;
 out vec4 outputColor;

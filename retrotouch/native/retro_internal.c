@@ -58,7 +58,7 @@ static void core_log(enum retro_log_level level, const char *fmt, ...) {
 		len --;
 	}
 	
-	current->log_fn("Core", (int)level, buffer);
+	current->cb_log("Core", (int)level, buffer);
 }
 
 
@@ -69,14 +69,13 @@ static bool video_set_pixel_format(unsigned format) {
 			LOG(RETRO_LOG_DEBUG, "Pixel format set to XRGB8888");
 			if (current->private->gl.program != 0) {
 				LOG(RETRO_LOG_WARN, "Pixel format changed after shaders were generated. Regenerating shaders...");
-				gtk_gl_area_make_current(GTK_GL_AREA(current->private->da));
 				rt_compile_shaders(current);
 			}
-			return TRUE;
+			return true;
 	}
 	LOG(RETRO_LOG_ERROR, "Unknown pixel type %u", format);
 	rt_set_error(current, "Unknown pixel format");
-	return FALSE;
+	return false;
 }
 
 
@@ -91,32 +90,32 @@ static bool core_environment(unsigned cmd, void* data) {
 	}
 	case RETRO_ENVIRONMENT_GET_CAN_DUPE:
 		bval = (bool*)data;
-		*bval = TRUE;
+		*bval = true;
 		break;
 	
 	
 	case RETRO_ENVIRONMENT_SET_VARIABLES:
 		// LOG(RETRO_LOG_DEBUG, "Unhandled RETRO_ENVIRONMENT_SET_VARIABLES");
-		return FALSE;
+		return false;
 	case RETRO_ENVIRONMENT_GET_VARIABLE:
 		// LOG(RETRO_LOG_DEBUG, "Unhandled RETRO_ENVIRONMENT_GET_VARIABLE");
-		return FALSE;
+		return false;
 	case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
 		// LOG(RETRO_LOG_DEBUG, "Unhandled RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE");	
-		return FALSE;
+		return false;
 	
 	case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT: {
 		const enum retro_pixel_format *fmt = (enum retro_pixel_format *)data;
 
 		if (*fmt > RETRO_PIXEL_FORMAT_RGB565)
-			return FALSE;
+			return false;
 
 		return video_set_pixel_format(*fmt);
 	}
 	
 	case RETRO_ENVIRONMENT_GET_USERNAME:
 		*(const char **)data = "RetroTouch";
-		return TRUE;
+		return true;
 	
 	case RETRO_ENVIRONMENT_GET_LANGUAGE:
 		*((enum retro_language*)data) = RETRO_LANGUAGE_ENGLISH;
@@ -124,13 +123,13 @@ static bool core_environment(unsigned cmd, void* data) {
 	case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
 	case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
 		*(const char **)data = ".";
-		return TRUE;
+		return true;
 	
 	case RETRO_ENVIRONMENT_SET_HW_RENDER: {
 		struct retro_hw_render_callback* cb = (struct retro_hw_render_callback*)data;
 		if (cb->context_type != RETRO_HW_CONTEXT_OPENGL) {
 			LOG(RETRO_LOG_ERROR, "Requested HW context #%i, but only OpenGL (#1) is supported");
-			return FALSE;
+			return false;
 		}
 		cb->get_current_framebuffer = video_driver_get_current_framebuffer;
 		cb->get_proc_address        = NULL; // video_driver_get_proc_address;
@@ -140,17 +139,17 @@ static bool core_environment(unsigned cmd, void* data) {
 	case RETRO_ENVIRONMENT_SET_CONTROLLER_INFO: {
 		const struct retro_controller_info* controller_info = (struct retro_controller_info*)data;
 		LOG(RETRO_LOG_DEBUG, "Unhandled env RETRO_ENVIRONMENT_SET_CONTROLLER_INFO", cmd);
-		return FALSE;
+		return false;
 	}
 	
 	}
 	
 	default:
 		LOG(RETRO_LOG_DEBUG, "Unhandled env #%u", cmd);
-		return FALSE;
+		return false;
 	}
 	
-	return TRUE;
+	return true;
 }
 
 
@@ -174,8 +173,8 @@ static size_t core_audio_sample_batch(const int16_t* audiodata, size_t frames) {
 
 
 static int16_t core_input_state(unsigned port, unsigned device, unsigned index, unsigned id) {
-	if (port <= RT_MAX_PORTS)
-		return (current->private->controller_state[port] & (1<<id)) ? 1 : 0;
+	if (port == 0)
+		return (*current->input_state & (1<<id)) ? 1 : 0;
 	return 0;
 }
 
@@ -265,8 +264,8 @@ int rt_core_load(LibraryData* data, const char* filename) {
 	set_audio_sample_batch(core_audio_sample_batch);
 	
 	current->core->retro_init();
-	current->core->initialized = TRUE;
-	current->core->game_loaded = FALSE;
+	current->core->initialized = true;
+	current->core->game_loaded = false;
 	
 	LOG(RETRO_LOG_DEBUG, "Core loaded");
 }
@@ -308,7 +307,7 @@ int rt_game_load(LibraryData* data, const char* filename) {
 	rt_set_render_size(current, av.geometry.base_width, av.geometry.base_height);
 	if (0 != rt_audio_init(current, av.timing.sample_rate))
 		return 1;
-	current->core->game_loaded = TRUE;
+	current->core->game_loaded = true;
 	return 0;
 }
 

@@ -1,9 +1,9 @@
 #ifndef _TM_RETRO_H__
 #define _TM_RETRO_H__
 #define XLIB_ILLEGAL_ACCESS
+#include <X11/Xlib.h>
 #include <GL/gl.h>
-#include <gtk/gtk.h>
-#include <gtk/gtkwidget.h>
+#include <GL/glx.h>
 #include <alsa/asoundlib.h>
 #include <libretro.h>
 
@@ -18,17 +18,14 @@ enum HwRenderState {
 };
 
 typedef struct {
-	GtkWidget* da;
-	
 	char error[1024];
 	const char* frame;
+	bool running;
 	unsigned int frame_width;
 	unsigned int frame_height;
-	unsigned int da_width;
-	unsigned int da_height;
-	uint32_t controller_state[RT_MAX_PORTS];
+	unsigned int draw_width;
+	unsigned int draw_height;
 	enum HwRenderState hw_render_state;
-	guint loop_id;
 	
 	struct {
 		uint64_t since;
@@ -44,6 +41,11 @@ typedef struct {
 	} audio;
 	
 	struct {
+		Display* dpy;
+		Window win;
+	} x;
+	
+	struct {
 		GLuint program;
 		GLuint texture;
 		GLuint fbo;
@@ -53,6 +55,7 @@ typedef struct {
 		GLuint vao;
 		GLuint vbo;
 		
+		GLXContext ctx;
 		GLfloat input_size[2];
 		GLfloat output_size[2];
 		const char* colorspace;
@@ -63,19 +66,22 @@ typedef struct {
 
 
 typedef struct {
-	GtkWidget* parent;
+	Window parent;
 	const char* respath;
-	void (*log_fn) (const char* tag, int level, const char* message);
-	struct CoreData* core;
+	void (*cb_log) (const char* tag, int level, const char* message);
+	void (*cb_render_size_changed) (int width, int height);
+	uint* input_state;
 	PrivateData* private;
+	struct CoreData* core;
 } LibraryData;
 
 
 void rt_log(LibraryData* data, const char* tag, enum retro_log_level level, const char *fmt, ...);
 void rt_set_error(LibraryData* data, const char* message);
 
-void rt_init_gl(LibraryData* data);
+int rt_init_gl(LibraryData* data);
 void rt_render(LibraryData* data);
+void rt_make_current(LibraryData* data);
 void rt_compile_shaders(LibraryData* data);
 
 // Returns 0 on success. Can be called multiple times to reconfigure frequency
@@ -85,6 +91,9 @@ size_t rt_audio_sample_batch(LibraryData* data, const int16_t* audiodata, size_t
 
 // Callback called when core decides on desired screen size
 void rt_set_render_size(LibraryData* data, int width, int height);
+// Callback called actual window to which image is drawn is resized
+void rt_set_draw_size(LibraryData* data, int width, int height);
+
 // Callback called when core has video frame ready
 void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsigned height, size_t pitch);
 // Callback called when core requests HW rendering. Returns 0 for success
@@ -92,9 +101,6 @@ int rt_hw_render_setup(LibraryData* data);
 // Called from event after rt_hw_render_setup is called and gl contect
 // can be acquired, or when render resolution is changed
 void rt_hw_render_reset(LibraryData* data);
-// Computes and sets size_request based on frame_width and height.
-// That is, at least 100px width and height while keeping aspect ratio
-void rt_compute_size_request(LibraryData* data);
 
 // Signalizes to core that GL context has been reset (used with HW rendering)
 void rt_core_context_reset(LibraryData* data);

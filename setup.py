@@ -18,7 +18,7 @@ if __name__ == "__main__":
 			license = 'GPL2',
 			platforms = ['Linux'],
 			ext_modules = [
-				Extension('libretrointerface',
+				Extension('libretro_runner',
 					sources = [
 						'retrotouch/native/retro_main.c',
 						'retrotouch/native/retro_audio.c',

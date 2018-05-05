@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
 	from gi.repository import Gtk, GObject
 	from retrotouch.paths import get_share_path
-	respath = os.path.join(get_share_path())
+	respath = get_share_path()
 	if Gtk.IconTheme.get_default():
 		Gtk.IconTheme.get_default().append_search_path(respath)
 	GObject.threads_init()

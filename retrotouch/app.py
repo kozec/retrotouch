@@ -84,12 +84,11 @@ class App(Gtk.Application):
 			x.set_events(Gdk.EventMask.TOUCH_MASK)
 			x.connect('touch-event', self.on_touch_event)
 		
-		box = self.builder.get_object("ebMain")
-		self.wrapper = Wrapper(self.respath, box)
+		self.wrapper = None
 		self.window.show_all()
 		
-		GLib.idle_add(self.select_core, "./Danganronpa [EN][v1.0][Full].iso")
-		# GLib.idle_add(self.select_core, "./Super Mario Bros (E).nes")
+		# Glib.idle_add(self.select_core, "./Danganronpa [EN][v1.0][Full].iso")
+		GLib.idle_add(self.select_core, "./Super Mario Bros (E).nes")
 	
 	
 	def select_core(self, game_filename):
@@ -129,10 +128,10 @@ class App(Gtk.Application):
 	
 	
 	def load_game(self, core, game_path):
-		self.wrapper.load_core(self.find_core_filename(core))
-		self.wrapper.load_game(game_path)
-		self.paused = True
-		self.on_btPlayPause_clicked()
+		if self.wrapper:
+			self.wrapper.destroy()
+		socket = self.builder.get_object("socket")
+		self.wrapper = Wrapper(self, socket, self.find_core_filename(core), game_path)
 	
 	
 	def on_btSettings_toggled(self, bt, *a):
@@ -145,17 +144,28 @@ class App(Gtk.Application):
 	
 	def on_window_delete_event(self, *a):
 		""" Called when user tries to close window """
+		if self.wrapper:
+			self.wrapper.destroy()
 		return False
 	
 	
-	def on_btPlayPause_clicked(self, *a):
+	def on_playpause_changed(self, paused):
 		imgPlayPause = self.builder.get_object("imgPlayPause")
-		if self.paused and self.wrapper.get_game_loaded():
-			self.wrapper.set_paused(False)
+		if paused:
 			imgPlayPause.set_from_stock("gtk-media-pause", Gtk.IconSize.BUTTON)
 		else:
-			self.wrapper.set_paused(True)
 			imgPlayPause.set_from_stock("gtk-media-play", Gtk.IconSize.BUTTON)
+	
+	
+	def on_btPlayPause_clicked(self, *a):
+		# imgPlayPause = self.builder.get_object("imgPlayPause")
+		# if self.paused:
+		# 	self.wrapper.set_paused(False)
+		# 	imgPlayPause.set_from_stock("gtk-media-pause", Gtk.IconSize.BUTTON)
+		# else:
+		# 	self.wrapper.set_paused(True)
+		# 	imgPlayPause.set_from_stock("gtk-media-play", Gtk.IconSize.BUTTON)
+		pass
 	
 	
 	def on_ebMain_focus_out_event(self, box, whatever):

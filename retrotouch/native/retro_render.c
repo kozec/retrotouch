@@ -11,25 +11,22 @@
 
 #define LOG(...) rt_log(data, "RRender", __VA_ARGS__)
 
-// https://www.bassi.io/articles/2015/02/17/using-opengl-with-gtk/
-
 struct vertex_info {
 	GLfloat position[3];
 	GLfloat color[3];
 };
 
 static const struct vertex_info vertex_data[] = {
-	{ { -0.95f,  0.95f, 0.0f }, { 0.f, 0.f, 0.f } },
-	{ { -0.95f, -0.95f, 0.0f }, { 0.f, 1.f, 0.f } },
-	{ {  0.95f, -0.95f, 0.0f }, { 1.f, 1.f, 1.f } },
-
-	{ {  0.95f,  0.95f, 0.0f }, { 1.f, 0.f, 0.f } },
-	{ {  0.95f, -0.95f, 0.0f }, { 1.f, 1.f, 0.f } },
-	{ { -0.95f,  0.95f, 0.0f }, { 0.f, 0.f, 1.f } },
+	{ { -1.f,  1.0f, 0.0f }, { 0.f, 0.f, 0.f } },
+	{ { -1.f, -1.0f, 0.0f }, { 0.f, 1.f, 0.f } },
+	{ {  1.f, -1.0f, 0.0f }, { 1.f, 1.f, 1.f } },
+	{ {  1.f,  1.0f, 0.0f }, { 1.f, 0.f, 0.f } },
+	{ {  1.f, -1.0f, 0.0f }, { 1.f, 1.f, 0.f } },
+	{ { -1.f,  1.0f, 0.0f }, { 0.f, 0.f, 1.f } },
 };
 
 
-void rt_init_gl(LibraryData* data) {
+int rt_init_gl(LibraryData* data) {
 	// Generate and fill buffers
 	glGenVertexArrays(1, &(data->private->gl.vao));
 	glBindVertexArray(data->private->gl.vao);
@@ -50,6 +47,8 @@ void rt_init_gl(LibraryData* data) {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindVertexArray(0);
 	LOG(RETRO_LOG_DEBUG, "GL initialized");
+	
+	return 0;
 }
 
 
@@ -117,35 +116,24 @@ uint64_t get_time() {
 
 
 void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsigned height, size_t pitch) {
-	// gtk_gl_area_queue_render(GTK_GL_AREA(data->private->da));
-	// return;
 	if (frame == NULL)
 		return;
 #if DEBUG_FPS
 	data->private->fps.generated ++;
 #endif
 	if (frame == RETRO_HW_FRAME_BUFFER_VALID) {
-		// glFlush();
-		gtk_gl_area_queue_render(GTK_GL_AREA(data->private->da));
 		return;
 	}
-	// data->private->frame_width = width;
-	// data->private->frame_height = height;
-	// data->private->frame = frame;
 	
 	glBindTexture(GL_TEXTURE_2D, data->private->gl.texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
 		width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, frame);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	// glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	
-	gtk_gl_area_queue_render(GTK_GL_AREA(data->private->da));
 }
 
 
 void rt_render(LibraryData* data) {
-	glViewport(0, 0, data->private->da_width, data->private->da_height);
+	glViewport(0, 0, data->private->draw_width, data->private->draw_height);
 	glClearColor(0.0, 0.0, 0.5, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
@@ -180,10 +168,15 @@ void rt_render(LibraryData* data) {
 }
 
 
+void rt_make_current(LibraryData* data) {
+	glXMakeCurrent(data->private->x.dpy, data->private->x.win, data->private->gl.ctx);
+}
+
+
 void rt_set_render_size(LibraryData* data, int width, int height) {
 	data->private->frame_width = width;
 	data->private->frame_height = height;
-	rt_compute_size_request(data);
+	data->cb_render_size_changed(width, height);
 	if (data->private->gl.fbo != 0) {
 		// Resolution changed after FBO is initialized, we need
 		// to change its resolution as well
@@ -203,12 +196,17 @@ void rt_set_render_size(LibraryData* data, int width, int height) {
 }
 
 
+void rt_set_draw_size(LibraryData* data, int width, int height) {
+	data->private->draw_width = width;
+	data->private->draw_height = height;
+}
+
+
 int rt_hw_render_setup(LibraryData* data) {
 	if (data->private->hw_render_state != HW_RENDER_DISABLED)
 		return 0;		// Already enabled or setting up
 	LOG(RETRO_LOG_DEBUG, "Setting up HW rendering...");
-	data->private->hw_render_state = HW_RENDER_NEEDS_RESET;
-	gtk_gl_area_queue_render(GTK_GL_AREA(data->private->da));
+	rt_hw_render_reset(data);
 	return 0;
 }
 
@@ -234,7 +232,5 @@ void rt_hw_render_reset(LibraryData* data) {
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	
-	rt_core_context_reset(data);
-	data->private->hw_render_state = HW_RENDER_READY;
-	LOG(RETRO_LOG_DEBUG, "HW rendering set up.");
+	data->private->hw_render_state = HW_RENDER_NEEDS_RESET;
 }

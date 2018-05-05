@@ -4,69 +4,93 @@ RetroTouch - Wrapper
 
 Wrapper around native c code
 """
-import ctypes
-import logging
+from gi.repository import Gio
+from retrotouch.rpc import RPC, decode_call, decode_size, prepare_mmap
+import os, tempfile, mmap, logging, subprocess, ctypes
 log = logging.getLogger("Wrapper")
 
-log_fn_t = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p)
-LOG_LEVELS = [
-	"debug",	# 0
-	"info",		# 1
-	"warn",		# 2
-	"error",	# 3
-]
 
-
-class LibraryData(ctypes.Structure):
-	_fields_ = [
-		("parent",  ctypes.c_void_p),
-		("respath", ctypes.c_char_p),
-		("log_fn",  log_fn_t),
-		("private", ctypes.c_void_p),
-		("core", ctypes.c_void_p),
-	]
-
-
-class Wrapper:
+class Wrapper(RPC):
 	
-	def __init__(self, respath, parent):
-		self._lib = ctypes.CDLL("./libretrointerface.so")
-		self._lib.rt_create.restype = ctypes.c_int
-		self._lib.rt_check_error.restype = ctypes.c_char_p
-		self._lib.rt_core_load.restype = ctypes.c_int
-		self._lib.rt_get_game_loaded.restype = ctypes.c_int
+	def __init__(self, app, socket, core, game):
+		# Store variables
+		self.app = app
+		self.socket = socket
+		self.core = core
+		self.game = game
+		self.app.on_playpause_changed(paused=True)
 		
+		# Prepare GTK
+		self.socket.realize()
 		
-		self.__libdata = LibraryData()
-		self.__libdata.parent = ctypes.c_void_p(hash(parent))	# Weird hack to get c pointer to GTK widget
-		self.__libdata.respath = ctypes.c_char_p(respath.encode("utf-8"))
-		self.__libdata.log_fn = log_fn_t(self._log_fn)
-		self.__libdata.private = None
-		self._libdata = ctypes.byref(self.__libdata)
-		assert 0 == self._lib.rt_create(self._libdata), "Failed to initialiaze native code"
+		# Prepare mmap
+		tmp, self.input_mmap = prepare_mmap()
+		self.input_state = ctypes.c_uint.from_buffer(self.input_mmap)
+		self.input_state.value = 0
+		
+		# Prepare RPC
+		mine_rfd, his_wfd = os.pipe()
+		his_rfd, mine_wfd = os.pipe()
+		RPC.__init__(self, mine_rfd, mine_wfd)
+		
+		# Start retro_runner
+		self.proc = subprocess.Popen([
+			"python", "retrotouch/retro_runner.py",
+			str(his_rfd), str(his_wfd), str(self.socket.get_id()),
+			tmp.name, self.core, self.game]) 
+		log.debug("Subprocess started")
+		os.close(his_rfd); os.close(his_wfd)
 	
 	
-	def _log_fn(self, tag, level, message):
-		getattr(logging.getLogger(tag), LOG_LEVELS[min(level, len(LOG_LEVELS))])(message)
+	def setup_fds(self, read_fd, write_fd):
+		def recieved_size(stream, res):
+			bts = stream.read_bytes_finish(res)
+			size = decode_size(bts.get_data())
+			self._read.read_bytes_async(size, 0, self._cancel, recieved_call)
+		
+		def recieved_call(stream, res):
+			bts = stream.read_bytes_finish(res)
+			mname, args, kws = decode_call(bts.get_data())
+			self.call_locally(mname, args, kws)
+			self._read.read_bytes_async(4, 0, self._cancel, recieved_size)
+		
+		self._read = Gio.UnixInputStream.new(read_fd, True)
+		self._write = os.fdopen(write_fd, 'wb')
+		self._cancel = Gio.Cancellable()
+		self._buffer = b" " * 4
+		self._read.read_bytes_async(4, 0, self._cancel, recieved_size)
+	
+	
+	def __del__(self):
+		self._cancel.cancel()
+		self.close()
+		self.destroy()
+	
+	
+	def destroy(self):
+		log.debug("Killing subprocess")
+		self.proc.kill()
+		self.input_mmap.close()
+	
+	
+	def render_size_changed(self, width, height):
+		self.socket.set_size_request(width, height)
+	
+	
+	def set_button(self, button, state):
+		if state:
+			self.input_state.value |= 1 << button
+		else:
+			self.input_state.value &= ~(1 << button)
 	
 	
 	def set_paused(self, paused):
-		assert 0 == self._lib.rt_set_paused(self._libdata, ctypes.c_int(1 if paused else 0))
+		pass
 	
 	
-	def get_game_loaded(self):
-		return self._lib.rt_get_game_loaded(self._libdata) == 1
+	def load_core(self, *a):
+		pass
 	
 	
-	def set_button(self, button, pressed):
-		self._lib.rt_set_button(self._libdata, ctypes.c_uint32(button), ctypes.c_int(pressed))
-	
-	
-	def load_core(self, filename):
-		assert self._lib.rt_check_error(self._libdata) is None, "Error detected"
-		assert 0 == self._lib.rt_core_load(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
-	
-	
-	def load_game(self, filename):
-		assert self._lib.rt_check_error(self._libdata) is None, "Error detected"
-		assert 0 == self._lib.rt_game_load(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
+	def load_game(self, *a):
+		pass
