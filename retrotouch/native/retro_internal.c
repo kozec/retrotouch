@@ -36,7 +36,7 @@ static LibraryData* current;
 
 
 static uintptr_t video_driver_get_current_framebuffer() {
-	return current->private->fbo;
+	return current->private->gl.fbo;
 }
 
 
@@ -65,7 +65,7 @@ static void core_log(enum retro_log_level level, const char *fmt, ...) {
 static bool video_set_pixel_format(unsigned format) {
 	switch (format) {
 		case RETRO_PIXEL_FORMAT_XRGB8888:
-			current->private->colorspace = "COLORSPACE_RGB";
+			current->private->gl.colorspace = "COLORSPACE_RGB";
 			LOG(RETRO_LOG_DEBUG, "Pixel format set to XRGB8888");
 			return TRUE;
 	}

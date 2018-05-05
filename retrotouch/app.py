@@ -88,8 +88,8 @@ class App(Gtk.Application):
 		self.wrapper = Wrapper(self.respath, box)
 		self.window.show_all()
 		
-		# GLib.idle_add(self.select_core, "./Danganronpa [EN][v1.0][Full].iso")
-		GLib.idle_add(self.select_core, "./Super Mario Bros (E).nes")
+		GLib.idle_add(self.select_core, "./Danganronpa [EN][v1.0][Full].iso")
+		# GLib.idle_add(self.select_core, "./Super Mario Bros (E).nes")
 	
 	
 	def select_core(self, game_filename):

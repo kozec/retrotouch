@@ -39,10 +39,10 @@ static gboolean on_render(GtkGLArea* da, GdkGLContext* context, LibraryData* dat
 static gboolean on_resize(GtkGLArea* da, gint width, gint height, LibraryData* data) {
 	data->private->da_width = width;
 	data->private->da_height = height;
-	if ((data->private->vao == 0) && (data->private->error[0] == 0))
+	if ((data->private->gl.vao == 0) && (data->private->error[0] == 0))
 		// TODO: Maybe use realize for gl init
 		rt_init_gl(data);
-	if ((data->private->program == 0) && (data->private->error[0] == 0))
+	if ((data->private->gl.program == 0) && (data->private->error[0] == 0))
 		rt_compile_shaders(data);
 	return TRUE;
 }

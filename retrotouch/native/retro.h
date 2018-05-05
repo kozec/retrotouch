@@ -43,18 +43,22 @@ typedef struct {
 		snd_pcm_t* device;
 	} audio;
 	
-	GLuint program;
-	GLfloat input_size[2];
-	GLfloat output_size[2];
-	const char* colorspace;
-	bool flipped;
-	GLuint texture;
-	GLuint fbo;
-	GLuint u_texture;
-	GLuint u_input_size;
-	GLuint u_output_size;
-	GLuint vao;
-	GLuint vbo;
+	struct {
+		GLuint program;
+		GLuint texture;
+		GLuint fbo;
+		GLuint u_texture;
+		GLuint u_input_size;
+		GLuint u_output_size;
+		GLuint vao;
+		GLuint vbo;
+		
+		GLfloat input_size[2];
+		GLfloat output_size[2];
+		const char* colorspace;
+		bool flipped;
+	} gl;
+	
 } PrivateData;
 
 
