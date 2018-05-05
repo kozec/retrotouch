@@ -13,8 +13,6 @@ int rt_audio_init(LibraryData* data, int frequency) {
 	if (frequency == data->private->audio.frequency)
 		return 0;
 	
-	printf("fuuuuck %i -> %i\n", data->private->audio.frequency, frequency);
-	
 	if (data->private->audio.frequency == 0) {
 		err = snd_pcm_open(&data->private->audio.device, "default", SND_PCM_STREAM_PLAYBACK, 0);
 		if (err < 0) {

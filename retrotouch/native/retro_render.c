@@ -54,6 +54,12 @@ void rt_init_gl(LibraryData* data) {
 
 
 void rt_compile_shaders(LibraryData* data) {
+	// Destroy old shaders
+	if (data->private->gl.program != 0) {
+		glDeleteProgram(data->private->gl.program);
+		data->private->gl.program = 0;
+	}
+	
 	// Prepare #defines
 	const char const* defines[] = {
 		data->private->gl.colorspace,

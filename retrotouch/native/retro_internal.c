@@ -67,6 +67,11 @@ static bool video_set_pixel_format(unsigned format) {
 		case RETRO_PIXEL_FORMAT_XRGB8888:
 			current->private->gl.colorspace = "COLORSPACE_RGB";
 			LOG(RETRO_LOG_DEBUG, "Pixel format set to XRGB8888");
+			if (current->private->gl.program != 0) {
+				LOG(RETRO_LOG_WARN, "Pixel format changed after shaders were generated. Regenerating shaders...");
+				gtk_gl_area_make_current(GTK_GL_AREA(current->private->da));
+				rt_compile_shaders(current);
+			}
 			return TRUE;
 	}
 	LOG(RETRO_LOG_ERROR, "Unknown pixel type %u", format);
