@@ -4,10 +4,11 @@
 #include <GL/gl.h>
 #include <gtk/gtk.h>
 #include <gtk/gtkwidget.h>
+#include <alsa/asoundlib.h>
 #include <libretro.h>
 
 #define RT_MAX_PORTS	4
-#define DEBUG_FPS		0
+#define DEBUG_FPS		1
 struct CoreData;
 
 enum HwRenderState {
@@ -35,6 +36,12 @@ typedef struct {
 		uint64_t ticks;
 		uint64_t generated;
 	} fps;
+	
+	struct {
+		int frequency;
+		snd_pcm_uframes_t buffer_size;
+		snd_pcm_t* device;
+	} audio;
 	
 	GLuint program;
 	GLfloat input_size[2];
@@ -65,8 +72,12 @@ void rt_set_error(LibraryData* data, const char* message);
 
 void rt_init_gl(LibraryData* data);
 void rt_render(LibraryData* data);
-
 void rt_compile_shaders(LibraryData* data);
+
+// Returns 0 on success. Can be called multiple times to reconfigure frequency
+int rt_audio_init(LibraryData* data, int frequency);
+void rt_audio_sample(LibraryData* data, int16_t left, int16_t right);
+size_t rt_audio_sample_batch(LibraryData* data, const int16_t* audiodata, size_t frames);
 
 // Callback called when core decides on desired screen size
 void rt_set_render_size(LibraryData* data, int width, int height);

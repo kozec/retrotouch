@@ -119,7 +119,7 @@ int rt_create(LibraryData* data) {
 	if ((data->private = malloc(sizeof(PrivateData))) == NULL)
 		return 1; // OOM
 	
-	if ((data->private->da = da = gtk_gl_area_new()) == NULL) {
+	if ((da = gtk_gl_area_new()) == NULL) {
 		free(data->private);
 		return 3; // Failed to create widget
 	}
@@ -131,20 +131,10 @@ int rt_create(LibraryData* data) {
 	gtk_container_add(GTK_CONTAINER(data->parent), da);
 	g_signal_connect(da, "render", (GCallback)on_render, data);
 	g_signal_connect(da, "resize", (GCallback)on_resize, data);
-	for (int i=0; i<RT_MAX_PORTS; i++)
-		data->private->controller_state[i] = 0;
-	data->private->fps.since = 0;
-	data->private->error[0] = 0;
-	data->private->hw_render_state = HW_RENDER_DISABLED;
-	data->private->program = 0;
+	memset(data->private, 0, sizeof(PrivateData));
 	data->private->frame_width = 640;
 	data->private->frame_height = 480;
-	data->private->da_width = 320;
-	data->private->da_height = 200;
-	data->private->vao = 0;
-	data->private->fbo = 0;
-	data->private->frame = NULL;
-	data->private->loop_id = 0;
+	data->private->da = da;
 	rt_compute_size_request(data);
 	LOG(RETRO_LOG_DEBUG, "Native code ready");
 	return 0;

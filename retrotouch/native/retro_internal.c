@@ -158,26 +158,20 @@ static void core_input_poll(void) {
 	// pass
 }
 
+static void core_audio_sample(int16_t left, int16_t right) {
+	rt_audio_sample(current, left, right);
+}
+
+
+static size_t core_audio_sample_batch(const int16_t* audiodata, size_t frames) {
+	rt_audio_sample_batch(current, audiodata, frames);
+}
+
 
 static int16_t core_input_state(unsigned port, unsigned device, unsigned index, unsigned id) {
 	if (port <= RT_MAX_PORTS)
 		return (current->private->controller_state[port] & (1<<id)) ? 1 : 0;
 	return 0;
-}
-
-
-static void core_audio_sample(int16_t left, int16_t right) {
-	
-}
-
-
-static size_t core_audio_sample_batch(const int16_t *data, size_t frames) {
-	return 0;
-}
-
-
-static void video_configure(const struct retro_game_geometry *geom) {
-	rt_set_render_size(current, geom->base_width, geom->base_height);
 }
 
 
@@ -306,9 +300,10 @@ int rt_game_load(LibraryData* data, const char* filename) {
 	}
 		
 	current->core->retro_get_system_av_info(&av);
-	video_configure(&av.geometry);
+	rt_set_render_size(current, av.geometry.base_width, av.geometry.base_height);
+	if (0 != rt_audio_init(current, av.timing.sample_rate))
+		return 1;
 	current->core->game_loaded = TRUE;
-	// audio_init(av.timing.sample_rate);
 	return 0;
 }
 
