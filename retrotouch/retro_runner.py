@@ -9,6 +9,8 @@ from __future__ import unicode_literals
 from retrotouch.paths import get_share_path
 from retrotouch.rpc import RPC, prepare_mmap
 import logging, ctypes, mmap, sys
+log = logging.getLogger("RRunner")
+
 
 cb_log_t = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p)
 cb_render_size_changed_t = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_int, ctypes.c_int)
@@ -40,7 +42,8 @@ class Native:
 		self._lib.rt_check_error.restype = ctypes.c_char_p
 		self._lib.rt_core_load.restype = ctypes.c_int
 		self._lib.rt_get_game_loaded.restype = ctypes.c_int
-
+		
+		self._paused = True
 		trash, self.input_mmap = prepare_mmap(input_fname)
 		self.input_state = ctypes.c_uint.from_buffer(self.input_mmap)
 		
@@ -69,8 +72,18 @@ class Native:
 		self._lib.rt_step(self._libdata)
 	
 	
+	def step_paused(self):
+		self._lib.rt_step_paused(self._libdata)
+	
+	
 	def set_paused(self, paused):
-		assert 0 == self._lib.rt_set_paused(self._libdata, ctypes.c_int(1 if paused else 0))
+		if self._paused != paused:
+			self._paused = paused
+			self.call("paused_changed", paused)
+			if paused:
+				log.debug("Core paused")
+			else:
+				log.debug("Core resumed")
 	
 	
 	def get_game_loaded(self):
@@ -94,6 +107,16 @@ class RetroRunner(Native, RPC):
 		RPC.__init__(self, read_fd, write_fd)
 		self.load_core(core)
 		self.load_game(game)
+	
+	
+	def run(self):
+		while True:
+			if self._paused:
+				self.select(0.1)
+				self.step_paused()
+			else:
+				self.select()
+				self.step()
 
 
 if __name__ == "__main__":
@@ -110,7 +133,5 @@ if __name__ == "__main__":
 	respath = get_share_path()
 	n = RetroRunner(respath, int(read_fd), int(write_fd),
 			input_fname, int(window_id), core, game)
-	
-	while True:
-		n.select()
-		n.step()
+	n.set_paused(False)
+	n.run()

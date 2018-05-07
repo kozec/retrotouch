@@ -20,7 +20,6 @@ enum HwRenderState {
 typedef struct {
 	char error[1024];
 	const char* frame;
-	bool running;
 	unsigned int frame_width;
 	unsigned int frame_height;
 	unsigned int draw_width;
@@ -111,9 +110,9 @@ int rt_game_load(LibraryData* data, const char* filename);
 void rt_core_unload();
 // Returns 1 if game is loaded
 int rt_get_game_loaded(LibraryData* data);
-// Starts, pauses or resumes game. 1 for paused. Returns 0 on success.
-int rt_set_paused(LibraryData* data, int paused);
 // Steps game one time (call this 60 times per second to get 60 FPS)
 void rt_core_step(LibraryData* data);
+// Does everything what rt_core_step, with important exception of actually running game. Called while paused.
+void rt_core_step_paused(LibraryData* data);
 
 #endif // _TM_RETRO_H

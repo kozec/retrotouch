@@ -33,28 +33,6 @@ const char* rt_check_error(LibraryData* data) {
 }
 
 
-int rt_set_paused(LibraryData* data, int paused) {
-	if (rt_get_game_loaded(data)) {
-		if (paused == !data->private->running) {
-			return 0;		// Already in correct state
-		} else if (paused) {
-			// Core is running but it should be paused
-			data->private->running = false;
-			LOG(RETRO_LOG_DEBUG, "Core paused");
-			return 0;
-		} else {
-			// Core is paused and it should be resumed
-			data->private->running = true;
-			LOG(RETRO_LOG_DEBUG, "Core resumed");
-			return 0;
-		}
-	} else {
-		LOG(RETRO_LOG_WARN, "Tried to pause/resume game but no game is loaded");
-		return 0;
-	}
-}
-
-
 int x_init(LibraryData* data) {
 	GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
 	XSetWindowAttributes wa;
@@ -108,7 +86,7 @@ int rt_init(LibraryData* data) {
 }
 
 
-void rt_step(LibraryData* data) {
+inline static void rt_step_xevent(LibraryData* data) {
 	static XEvent xev;
 	
 	while (XPending(data->private->x.dpy)) {
@@ -124,7 +102,19 @@ void rt_step(LibraryData* data) {
 			rt_set_draw_size(data, xev.xconfigure.width, xev.xconfigure.height);
 		}
 	}
-	
+}
+
+
+void rt_step_paused(LibraryData* data) {
+	rt_step_xevent(data);
+	rt_make_current(data);
+	rt_render(data);
+	glXSwapBuffers(data->private->x.dpy, data->private->x.win);
+}	
+
+
+void rt_step(LibraryData* data) {
+	rt_step_xevent(data);
 	rt_make_current(data);
 	if (data->private->hw_render_state == HW_RENDER_NEEDS_RESET) {
 		data->private->hw_render_state = HW_RENDER_READY;

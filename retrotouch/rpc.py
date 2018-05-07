@@ -6,7 +6,8 @@ Handles talking between runner and GUI
 """
 from __future__ import unicode_literals
 
-import os, tempfile, mmap, struct, pickle, select, logging
+import cPickle as pickle
+import os, tempfile, mmap, struct, select, logging
 log = logging.getLogger("RPC")
 
 
@@ -26,8 +27,8 @@ class RPC:
 		self._write.close()
 	
 	
-	def select(self):
-		r, w, x = select.select([self._read], [], [], 0)
+	def select(self, timeout=0):
+		r, w, x = select.select([self._read], [], [], timeout)
 		if len(r):
 			size = decode_size(self._read.read(4))
 			mname, args, kws = decode_call(self._read.read(size))
@@ -55,7 +56,7 @@ def decode_size(bts):
 	return struct.unpack("@I", bts)[0]
 
 def encode_call(mname, args, kws):
-	return pickle.dumps((mname, args, kws))
+	return pickle.dumps((mname, args, kws), -1)
 
 def decode_call(bts):
 	mname, args, kws = pickle.loads(bts)

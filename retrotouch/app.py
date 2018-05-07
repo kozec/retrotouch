@@ -152,20 +152,14 @@ class App(Gtk.Application):
 	def on_playpause_changed(self, paused):
 		imgPlayPause = self.builder.get_object("imgPlayPause")
 		if paused:
-			imgPlayPause.set_from_stock("gtk-media-pause", Gtk.IconSize.BUTTON)
-		else:
 			imgPlayPause.set_from_stock("gtk-media-play", Gtk.IconSize.BUTTON)
+		else:
+			imgPlayPause.set_from_stock("gtk-media-pause", Gtk.IconSize.BUTTON)
+		self.paused = paused
 	
 	
 	def on_btPlayPause_clicked(self, *a):
-		# imgPlayPause = self.builder.get_object("imgPlayPause")
-		# if self.paused:
-		# 	self.wrapper.set_paused(False)
-		# 	imgPlayPause.set_from_stock("gtk-media-pause", Gtk.IconSize.BUTTON)
-		# else:
-		# 	self.wrapper.set_paused(True)
-		# 	imgPlayPause.set_from_stock("gtk-media-play", Gtk.IconSize.BUTTON)
-		pass
+		self.wrapper.set_paused(not self.paused)
 	
 	
 	def on_ebMain_focus_out_event(self, box, whatever):

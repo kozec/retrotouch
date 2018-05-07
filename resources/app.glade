@@ -192,7 +192,7 @@
         <child>
           <object class="GtkMenuButton" id="btDaemon">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
+            <property name="can_focus">False</property>
             <property name="receives_default">True</property>
             <property name="relief">none</property>
             <child>
@@ -211,7 +211,7 @@
         <child>
           <object class="GtkButton" id="btPlayPause">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
+            <property name="can_focus">False</property>
             <property name="receives_default">True</property>
             <property name="relief">none</property>
             <signal name="clicked" handler="on_btPlayPause_clicked" swapped="no"/>
@@ -230,7 +230,7 @@
         <child>
           <object class="GtkToggleButton" id="btSettings">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
+            <property name="can_focus">False</property>
             <property name="receives_default">True</property>
             <property name="relief">half</property>
             <signal name="toggled" handler="on_btSettings_toggled" swapped="no"/>

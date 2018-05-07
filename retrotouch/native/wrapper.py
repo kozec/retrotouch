@@ -77,6 +77,10 @@ class Wrapper(RPC):
 		self.socket.set_size_request(width, height)
 	
 	
+	def paused_changed(self, paused):
+		self.app.on_playpause_changed(paused=paused)
+	
+	
 	def set_button(self, button, state):
 		if state:
 			self.input_state.value |= 1 << button
@@ -85,7 +89,7 @@ class Wrapper(RPC):
 	
 	
 	def set_paused(self, paused):
-		pass
+		self.call('set_paused', paused)
 	
 	
 	def load_core(self, *a):
