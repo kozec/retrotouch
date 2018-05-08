@@ -7,8 +7,9 @@
 #include <alsa/asoundlib.h>
 #include <libretro.h>
 
-#define RT_MAX_PORTS	4
-#define DEBUG_FPS		1
+#define RT_MAX_PORTS		4
+#define RT_DEBUG_FPS			1
+#define RT_AUDIO_ENABLED	0
 struct CoreData;
 
 enum HwRenderState {

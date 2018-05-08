@@ -7,6 +7,7 @@
 
 
 int rt_audio_init(LibraryData* data, int frequency) {
+#if RT_AUDIO_ENABLED
 	int err;
 	snd_pcm_hw_params_t* hw_params;
 
@@ -81,11 +82,15 @@ int rt_audio_init(LibraryData* data, int frequency) {
 	}
 	data->private->audio.frequency = frequency;
 	
+#else
+	LOG(RETRO_LOG_WARN, "Compiled without audio support; Audio disabled");
+#endif
 	return 0;
 }
 
 
 size_t rt_audio_sample_batch(LibraryData* data, const int16_t* audiodata, size_t frames) {
+#if RT_AUDIO_ENABLED
 	snd_pcm_sframes_t r = snd_pcm_writei(data->private->audio.device, audiodata, frames);
 	if (r < 0) {
 		if (r == -EPIPE)
@@ -97,6 +102,9 @@ size_t rt_audio_sample_batch(LibraryData* data, const int16_t* audiodata, size_t
 	}
 	
 	return r;
+#else
+	return frames;
+#endif
 }
 
 

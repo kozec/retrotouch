@@ -198,7 +198,7 @@ void rt_core_context_reset(LibraryData* data) {
 
 void rt_core_step(LibraryData* data) {
 	current = data;
-#if DEBUG_FPS
+#if RT_DEBUG_FPS
 	data->private->fps.ticks ++;
 #endif
 	current->core->retro_run();

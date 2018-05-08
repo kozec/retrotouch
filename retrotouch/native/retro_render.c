@@ -118,7 +118,7 @@ uint64_t get_time() {
 void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsigned height, size_t pitch) {
 	if (frame == NULL)
 		return;
-#if DEBUG_FPS
+#if RT_DEBUG_FPS
 	data->private->fps.generated ++;
 #endif
 	if (frame == RETRO_HW_FRAME_BUFFER_VALID) {
@@ -147,7 +147,7 @@ void rt_render(LibraryData* data) {
 	glBindVertexArray(0);
 	glUseProgram(0);
 	
-#if DEBUG_FPS
+#if RT_DEBUG_FPS
 	uint64_t now = get_time();
 	if ((data->private->fps.since == 0) || (now > data->private->fps.since + 1000)) {
 		if (data->private->fps.since > 0) {
