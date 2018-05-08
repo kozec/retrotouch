@@ -16,7 +16,7 @@ import os
 def get_share_path():
 	"""
 	Returns directory where shared files are kept.
-	Usually "/usr/share/scc" or $SCC_SHARED if program is being started from
+	Usually "/usr/share/retrotouch" or $SHARED if program is being started from
 	script extracted from source tarball
 	"""
 	if "SHARED" in os.environ:
@@ -24,3 +24,26 @@ def get_share_path():
 	if os.path.exists("/usr/local/share/retrotouch/"):
 		return "/usr/local/share/retrotouch/"
 	return "/usr/share/retrotouch/"
+
+
+def get_config_path():
+	"""
+	Returns configuration directory.
+	~/.config/retrotouch under normal conditions.
+	"""
+	confdir = os.path.expanduser("~/.config")
+	if "XDG_CONFIG_HOME" in os.environ:
+		confdir = os.environ['XDG_CONFIG_HOME']
+	return os.path.join(confdir, "retrotouch")
+
+
+def get_data_path():
+	"""
+	Returns directory for user data that is not configuration.
+	RetroTouch stores game saves there.
+	~/.local/share/retrotouch under normal conditions.
+	"""
+	confdir = os.path.expanduser("~/.local/share")
+	if "XDG_DATA_HOME" in os.environ:
+		confdir = os.environ['XDG_DATA_HOME']
+	return os.path.join(confdir, "retrotouch")

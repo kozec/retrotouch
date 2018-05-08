@@ -99,10 +99,13 @@ class Native:
 	def load_game(self, filename):
 		assert self._lib.rt_check_error(self._libdata) is None, "Error detected"
 		assert 0 == self._lib.rt_game_load(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
-
-
-class RetroRunner(Native, RPC):
 	
+	
+	def save_state(self, filename):
+		assert 0 == self._lib.rt_save_state(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
+
+
+class RetroRunner(Native, RPC):	
 	def __init__(self, respath, read_fd, write_fd, input_fname, parent, core, game):
 		RPC.__init__(self, read_fd, write_fd)
 		Native.__init__(self, respath, parent, input_fname)

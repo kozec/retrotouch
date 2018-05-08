@@ -7,10 +7,11 @@
 #define LOG(...) rt_log(current, "RInternal", __VA_ARGS__)
 
 struct CoreData {
-	void *handle;
+	void* handle;
 	bool initialized;
 	bool game_loaded;
-
+	char* save_state;
+	
 	void (*retro_init)(void);
 	void (*retro_deinit)(void);
 	unsigned (*retro_api_version)(void);
@@ -19,6 +20,8 @@ struct CoreData {
 	void (*retro_set_controller_port_device)(unsigned port, unsigned device);
 	void (*retro_reset)(void);
 	void (*retro_run)(void);
+	size_t (*retro_serialize_size)(void);
+	bool (*retro_serialize)(void *data, size_t size);
 	bool (*retro_load_game)(const struct retro_game_info *game);
 	void (*retro_unload_game)(void);
 	struct retro_hw_render_callback hw_render_callback;
@@ -191,6 +194,7 @@ void rt_core_unload() {
 	}
 }
 
+
 void rt_core_context_reset(LibraryData* data) {
 	current->core->hw_render_callback.context_reset();
 }
@@ -230,6 +234,7 @@ int rt_core_load(LibraryData* data, const char* filename) {
 	void (*set_audio_sample_batch)(retro_audio_sample_batch_t) = NULL;
 	
 	current->core->handle = dlopen(filename, RTLD_LAZY);
+	current->core->save_state = NULL;
 	
 	if (!current->core->handle) {
 		LOG(RETRO_LOG_ERROR, "Failed to load core: %s", dlerror());
@@ -248,6 +253,8 @@ int rt_core_load(LibraryData* data, const char* filename) {
 	load_retro_sym(retro_run);
 	load_retro_sym(retro_load_game);
 	load_retro_sym(retro_unload_game);
+	load_retro_sym(retro_serialize_size);
+	load_retro_sym(retro_serialize);
 	
 	load_sym(set_environment, retro_set_environment);
 	load_sym(set_video_refresh, retro_set_video_refresh);
@@ -311,3 +318,32 @@ int rt_game_load(LibraryData* data, const char* filename) {
 	return 0;
 }
 
+
+int rt_save_state(LibraryData* data, const char* filename) {
+	size_t size = current->core->retro_serialize_size();
+	if (current->core->save_state == NULL) {
+		current->core->save_state = malloc(size);
+		if (current->core->save_state == NULL) {
+			LOG(RETRO_LOG_ERROR, "Failed to save state: Failed to allocate memory");
+			return 2;
+		}
+	}
+	
+	if (current->core->retro_serialize(current->core->save_state, size)) {
+		FILE* f = fopen(filename, "wb");
+		if (f == NULL) {
+			LOG(RETRO_LOG_ERROR, "Failed to save state: Failed to open save file");
+			return 3;
+		}
+		if (fwrite(current->core->save_state, size, 1, f) < 1) {
+			LOG(RETRO_LOG_ERROR, "Failed to save state: Write failed");
+			return 3;
+		}
+		fclose(f);
+	} else {
+		LOG(RETRO_LOG_ERROR, "Failed to save state");
+		return 1;
+	}
+	LOG(RETRO_LOG_INFO, "State saved to '%s'", filename);
+	return 0;
+}

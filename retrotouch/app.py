@@ -8,9 +8,10 @@ from __future__ import unicode_literals
 from gi.repository import Gtk, Gdk, Gio, GLib
 from retrotouch.svg_widget import SVGWidget
 from retrotouch.native.wrapper import Wrapper
+from retrotouch.paths import get_data_path
 from retrotouch.tools import _
 
-import os, logging
+import os, logging, datetime
 log = logging.getLogger("App")
 
 
@@ -150,6 +151,25 @@ class App(Gtk.Application):
 			GLib.timeout_add(rvToolbar.get_transition_duration() + 50, pause_resume)
 	
 	
+	def on_btPlayPause_clicked(self, *a):
+		if self.wrapper:
+			self.wrapper.set_paused(not self.paused)
+	
+	
+	def on_btQuickSave_clicked(self, *a):
+		if self.wrapper:
+			path = get_data_path()
+			try:
+				os.makedirs(path)
+			except: pass
+			savefile = os.path.join(path, "%s-%s.sav" % (
+				"game",
+				datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+			))
+			
+			self.wrapper.save_state(savefile)
+	
+	
 	def on_window_delete_event(self, *a):
 		""" Called when user tries to close window """
 		if self.wrapper:
@@ -164,11 +184,6 @@ class App(Gtk.Application):
 		else:
 			imgPlayPause.set_from_stock("gtk-media-pause", Gtk.IconSize.BUTTON)
 		self.paused = paused
-	
-	
-	def on_btPlayPause_clicked(self, *a):
-		if self.wrapper:
-			self.wrapper.set_paused(not self.paused)
 	
 	
 	def on_ebMain_focus_out_event(self, box, whatever):

@@ -93,6 +93,10 @@ class Wrapper(RPC):
 			self.window.move_resize(0, 0, width, height)
 	
 	
+	def save_state(self, filename):
+		self.call('save_state', filename)
+	
+	
 	def set_button(self, button, state):
 		if state:
 			self.input_state.value |= 1 << button
