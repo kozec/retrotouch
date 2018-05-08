@@ -1,16 +1,17 @@
 #!/usr/bin/env python2
 """
-SC-Controller - Background
+SVG Widget
 
-Changes SVG on the fly and uptates that magnificent image on background with it.
+Manipulates SVG on the fly to create weird-looking image.
 Also supports clicking on areas defined in SVG image.
 """
 from __future__ import unicode_literals
-from retrotouch.tools import _
+from scc.tools import _
 
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf, Rsvg
 from xml.etree import ElementTree as ET
 from math import sin, cos, pi as PI
+from collections import OrderedDict
 import os, sys, re, logging
 
 log = logging.getLogger("Background")
@@ -19,20 +20,21 @@ ET.register_namespace('', "http://www.w3.org/2000/svg")
 
 class SVGWidget(Gtk.EventBox):
 	FILENAME = "background.svg"
+	CACHE_SIZE = 50
 	
 	__gsignals__ = {
 			# Raised when mouse is over defined area
-			b"hover"	: (GObject.SIGNAL_RUN_FIRST, None, (object,)),
+			b"hover"	: (GObject.SignalFlags.RUN_FIRST, None, (object,)),
 			# Raised when mouse leaves all defined areas
-			b"leave"	: (GObject.SIGNAL_RUN_FIRST, None, ()),
+			b"leave"	: (GObject.SignalFlags.RUN_FIRST, None, ()),
 			# Raised user clicks on defined area
-			b"click"	: (GObject.SIGNAL_RUN_FIRST, None, (object,)),
+			b"click"	: (GObject.SignalFlags.RUN_FIRST, None, (object,)),
 	}
 	
 	
-	def __init__(self,  filename, init_hilighted=True):
+	def __init__(self, filename, init_hilighted=True):
 		Gtk.EventBox.__init__(self)
-		self.cache = {}
+		self.cache = OrderedDict()
 		self.areas = []
 		
 		self.connect("motion-notify-event", self.on_mouse_moved)
@@ -52,7 +54,7 @@ class SVGWidget(Gtk.EventBox):
 	
 	def set_image(self, filename):
 		self.current_svg = open(filename, "r").read().decode("utf-8")
-		self.cache = {}
+		self.cache = OrderedDict()
 		self.areas = []
 		self.parse_image()
 	
@@ -77,7 +79,7 @@ class SVGWidget(Gtk.EventBox):
 		so this may be slow and nasty.
 		"""
 		self.size_override = width, height
-		self.cache = {}
+		self.cache = OrderedDict()
 	
 	
 	def on_mouse_click(self, trash, event):
@@ -100,11 +102,10 @@ class SVGWidget(Gtk.EventBox):
 		self.emit('leave')
 		return None
 	
-	def get_area_at(self, x, y):
+	def get_areas_at(self, x, y):
 		for a in self.areas:
 			if a.contains(x, y):
-				return a.name
-		return None
+				yield a.name
 	
 	
 	def get_area(self, id):
@@ -112,6 +113,21 @@ class SVGWidget(Gtk.EventBox):
 			if a.name == id:
 				return a
 		return None
+	
+	
+	def get_all_by_prefix(self, prefix):
+		"""
+		Searchs for areas using specific prefix.
+		For prefix "AREA_", returns self.areas arrray. For anything else,
+		re-parses current image and searchs recursivelly for anything that matches, so it
+		may be good idea to not call this too often.
+		"""
+		if prefix == "AREA_":
+			return self.areas
+		lst = []
+		tree = ET.fromstring(self.current_svg.encode("utf-8"))
+		SVGWidget.find_areas(tree, None, lst, prefix=prefix)
+		return lst
 	
 	
 	def get_area_position(self, area_id):
@@ -127,7 +143,7 @@ class SVGWidget(Gtk.EventBox):
 	
 	
 	@staticmethod
-	def find_areas(xml, parent_transform, areas):
+	def find_areas(xml, parent_transform, areas, get_colors=False, prefix="AREA_"):
 		"""
 		Recursively searches throught XML for anything with ID of 'AREA_SOMETHING'
 		"""
@@ -135,11 +151,18 @@ class SVGWidget(Gtk.EventBox):
 			child_transform = SVGEditor.matrixmul(
 				parent_transform or SVGEditor.IDENTITY,
 				SVGEditor.parse_transform(child))
-			if 'id' in child.attrib and child.attrib['id'].startswith("AREA_"):
+			if str(child.attrib.get('id')).startswith(prefix):
 				# log.debug("Found SVG area %s", child.attrib['id'][5:])
-				areas.append(Area(child, child_transform))
+				a = Area(child, child_transform)
+				if get_colors:
+					a.color = None
+					if 'style' in child.attrib:
+						style = { y[0] : y[1] for y in [ x.split(":", 1) for x in child.attrib['style'].split(";") ] }
+						if 'fill' in style:
+							a.color = SVGWidget.color_to_float(style['fill'])
+				areas.append(a)
 			else:
-				SVGWidget.find_areas(child, child_transform, areas)
+				SVGWidget.find_areas(child, child_transform, areas, get_colors=get_colors, prefix=prefix)
 	
 	
 	def get_rect_area(self, element):
@@ -157,6 +180,18 @@ class SVGWidget(Gtk.EventBox):
 		if 'height' in element.attrib: height = float(element.attrib['height'])
 		
 		return x, y, width, height
+	
+	
+	@staticmethod
+	def color_to_float(colorstr):
+		"""
+		Parses color expressed as RRGGBB (as in config) and returns
+		three floats of r, g, b, a (range 0 to 1)
+		"""
+		b, color = Gdk.Color.parse("#" + colorstr.strip("#"))
+		if b:
+			return color.red_float, color.green_float, color.blue_float, 1
+		return 1, 0, 1, 1	# uggly purple
 	
 	
 	def hilight(self, buttons):
@@ -182,6 +217,8 @@ class SVGWidget(Gtk.EventBox):
 				
 				# ... and now, parse that as XML again......
 				svg = Rsvg.Handle.new_from_data(xml.encode("utf-8"))
+			while len(self.cache) >= self.CACHE_SIZE:
+				self.cache.popitem(False)
 			if self.size_override:
 				w, h = self.size_override
 				self.cache[cache_id] = svg.get_pixbuf().scale_simple(
@@ -192,14 +229,14 @@ class SVGWidget(Gtk.EventBox):
 		self.image.set_from_pixbuf(self.cache[cache_id])
 	
 	
+	def get_pixbuf(self):
+		""" Returns pixbuf of current image """
+		return self.image.get_pixbuf()
+	
+	
 	def edit(self):
 		""" Returns new Editor instance bound to this widget """
 		return SVGEditor(self)
-	
-	
-	def get_pixbuf(self):
-		""" Returns currently displayed pixbuf """
-		return self.image.get_pixbuf()
 
 
 class Area:
@@ -255,7 +292,7 @@ class SVGEditor(object):
 		Return self.
 		"""
 		self._svgw.current_svg = ET.tostring(self._tree)
-		self._svgw.cache = {}
+		self._svgw.cache = OrderedDict()
 		self._svgw.hilight({})
 		
 		return self
@@ -307,6 +344,30 @@ class SVGEditor(object):
 			e = SVGEditor.get_element(self, e)
 		if e is not None:
 			e.parent.remove(e)
+		return self
+	
+	
+	def keep(self, *ids):
+		"""
+		Removes all elements but ones with ID specified.
+		Keeps child elements as well.
+		
+		Returns self.
+		"""
+		
+		def recursive(element):
+			for child in list(element):
+				if (child.tag.endswith("metadata") 
+						or child.tag.endswith("defs")
+						or child.tag.endswith("defs")
+						or child.tag.endswith("namedview")
+					):
+					recursive(child)
+				elif child.attrib.get('id') not in ids:
+					element.remove(child)
+		
+		
+		recursive(self._tree)
 		return self
 	
 	
@@ -384,11 +445,12 @@ class SVGEditor(object):
 			if 'style' in element.attrib:
 				style = { y[0] : y[1] for y in [ x.split(":", 1) for x in element.attrib['style'].split(";") ] }
 				if 'fill' in style:
-					style['fill'] = color
 					if len(color.strip("#")) == 8:
+						style['fill'] = "#%s" % (color[-6:],)
 						alpha = float(int(color.strip("#")[0:2], 16)) / 255.0
 						style['fill-opacity'] = style['opacity'] = str(alpha)
 					else:
+						style['fill'] = color
 						style['fill-opacity'] = style['opacity'] = "1"
 					element.attrib['style'] = ";".join([ "%s:%s" % (x, style[x]) for x in style ])
 					return True

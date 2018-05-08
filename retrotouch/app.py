@@ -34,22 +34,17 @@ class App(Gtk.Application):
 	}
 	
 	TOUCH_MAPPINGS = {
-		"A":			1 << 1,
-		"B":			1 << 2,
-		"START":		1 << 3,
-		"SELECT":		1 << 4,
-		"DPAD_UP":		1 << 5,
-		"DPAD_DOWN":	1 << 6,
-		"DPAD_LEFT":	1 << 7,
-		"DPAD_RIGHT":	1 << 8,
+		"A":			8,
+		"B":			0,
+		"START":		3,
+		"SELECT":		2,
+		"DPAD_UP":		4,
+		"DPAD_DOWN":	5,
+		"DPAD_LEFT":	6,
+		"DPAD_RIGHT":	7,
 	}
 	
-	DPAD_DIRECTIONS = ( 0 )
-	#	(1 << Retro.GamepadButtonType.DIRECTION_UP)
-	#	| (1 << Retro.GamepadButtonType.DIRECTION_DOWN)
-	#	| (1 << Retro.GamepadButtonType.DIRECTION_LEFT)
-	#	| (1 << Retro.GamepadButtonType.DIRECTION_RIGHT)
-	#
+	DPAD_DIRECTIONS = (4, 5, 6, 7)
 	
 	
 	def __init__(self, respath="/usr/share/retrotouch"):
@@ -75,8 +70,8 @@ class App(Gtk.Application):
 		
 		asLeft = self.builder.get_object("asLeft")
 		asRight = self.builder.get_object("asRight")
-		self.left = SVGWidget(os.path.join(self.respath, "pads/psp/left.svg"))
-		self.right = SVGWidget(os.path.join(self.respath, "pads/psp/right.svg"))
+		self.left = SVGWidget(os.path.join(self.respath, "pads/nes/left.svg"))
+		self.right = SVGWidget(os.path.join(self.respath, "pads/nes/right.svg"))
 		asLeft.add(self.left)
 		asRight.add(self.right)
 		
@@ -174,14 +169,19 @@ class App(Gtk.Application):
 		y = event.y - y
 		update = False
 		
+		if "DPAD1" not in self.hilights:
+			self.hilights["DPAD1"] = TouchData(set())
+		if "DPAD2" not in self.hilights:
+			self.hilights["DPAD2"] = TouchData(set())
+		
 		if y > height * 0.25 and y < height * 0.75:
 			if x > width * 0.5:
-				self.hilights["DPAD1"] = "DPAD_RIGHT"
+				self.hilights["DPAD1"].set_areas(set(("DPAD_RIGHT", )))
 				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_RIGHT"], True)
 				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_LEFT"], False)
 				update = True
 			else:
-				self.hilights["DPAD1"] = "DPAD_LEFT"
+				self.hilights["DPAD1"].set_areas(set(("DPAD_LEFT", )))
 				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_LEFT"], True)
 				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_RIGHT"], False)
 				update = True
@@ -193,23 +193,23 @@ class App(Gtk.Application):
 		
 		if x > width * 0.25 and x < width * 0.75:
 			if y > height * 0.5:
-				self.hilights["DPAD2"] = "DPAD_DOWN"
+				self.hilights["DPAD2"].set_areas(set(("DPAD_DOWN", )))
 				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_DOWN"], True)
 				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_UP"], False)
 				update = True
 			else:
-				self.hilights["DPAD2"] = "DPAD_UP"
+				self.hilights["DPAD2"].set_areas(set(("DPAD_UP", )))
 				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_UP"], True)
 				self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_DOWN"], False)
 				update = True
 		elif "DPAD2" in self.hilights:
 			del self.hilights["DPAD2"]
-			self.wrapper.set_button(~App.TOUCH_MAPPINGS["DPAD_UP"], True)
+			self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_UP"], True)
 			self.wrapper.set_button(App.TOUCH_MAPPINGS["DPAD_DOWN"], False)
 			update = True
 		
 		if update:
-			widget.hilight({ a : self.HILIGHT for (trash, a) in self.hilights.items() })
+			self.update_hilights(widget)
 	
 	
 	def dpad_cancel(self):
@@ -223,26 +223,49 @@ class App(Gtk.Application):
 	
 	def on_touch_event(self, widget, event):
 		if event.type == Gdk.EventType.TOUCH_BEGIN:
-			a = widget.get_area_at(event.x, event.y)
-			if a:
-				self.hilights[event.sequence] = a
-				if a == "DPAD":
-					self.dpad_update(widget, event)
-				else:
-					widget.hilight({ a : self.HILIGHT for (trash, a) in self.hilights.items() })
-				if a in App.TOUCH_MAPPINGS:
-					self.wrapper.set_button(App.TOUCH_MAPPINGS[a], True)
-		elif event.type == Gdk.EventType.TOUCH_UPDATE:
-			if self.hilights.get(event.sequence) == "DPAD":
+			self.hilights[event.sequence] = TouchData(set(widget.get_areas_at(event.x, event.y)), from_event=event)
+			hi = self.hilights[event.sequence]
+			if hi.is_dpad:
 				self.dpad_update(widget, event)
+			else:
+				for a in hi.areas:
+					if a in App.TOUCH_MAPPINGS:
+						self.wrapper.set_button(App.TOUCH_MAPPINGS[a], True)
+				self.update_hilights(widget)
+		elif event.type == Gdk.EventType.TOUCH_UPDATE:
+			hi = self.hilights.get(event.sequence)
+			if hi is not None:
+				if hi.is_dpad:
+					self.dpad_update(widget, event)
+				elif hi.is_change(event):
+					c = set(widget.get_areas_at(event.x, event.y))
+					if c.symmetric_difference(hi.areas):
+						for a in hi.areas - c:
+							self.wrapper.set_button(App.TOUCH_MAPPINGS[a], False)
+						for a in c - hi.areas:
+							self.wrapper.set_button(App.TOUCH_MAPPINGS[a], True)
+						hi.set_areas(c, from_event=event)
+						self.update_hilights(widget)
 		elif event.type == Gdk.EventType.TOUCH_END:
-			a = self.hilights.get(event.sequence)
-			if a:
-				if a == "DPAD": self.dpad_cancel()
+			hi = self.hilights.get(event.sequence)
+			if hi:
+				if hi.is_dpad:
+					self.dpad_cancel()
+				else:
+					for a in hi.areas:
+						if a in App.TOUCH_MAPPINGS:
+							self.wrapper.set_button(App.TOUCH_MAPPINGS[a], False)
 				del self.hilights[event.sequence]
-				if a in App.TOUCH_MAPPINGS:
-					self.wrapper.set_button(App.TOUCH_MAPPINGS[a], False)
-				widget.hilight({ a : self.HILIGHT for (trash, a) in self.hilights.items() })
+				self.update_hilights(widget)
+	
+	
+	def update_hilights(self, widget):
+		areas = reduce(
+			lambda a,b: a.union(b),
+			(set(x.areas) for x in self.hilights.values()),
+			set()
+		)
+		widget.hilight({ a : self.HILIGHT for a in areas })
 	
 	
 	def on_window_key_press_event(self, window, event):
@@ -271,3 +294,29 @@ class App(Gtk.Application):
 	def do_startup(self, *a):
 		Gtk.Application.do_startup(self, *a)
 		self.setup_widgets()
+
+
+class TouchData:
+	
+	def __init__(self, areas, from_event=None):
+		self.areas = areas
+		self.is_dpad = "DPAD" in areas
+		if from_event:
+			self.from_event = True
+			self.x, self.y = int(from_event.x), int(from_event.y)
+		else:
+			self.from_event = False
+	
+	
+	def set_areas(self, new_list, from_event=None):
+		""" Returns True if list was changed """
+		old, self.areas = self.areas, new_list
+		if from_event:
+			self.x, self.y = int(from_event.x), int(from_event.y)
+		return old != self.areas
+	
+	
+	def is_change(self, event):
+		if not self.from_event:
+			return False
+		return int(event.x) != self.x or int(event.y) != self.y
