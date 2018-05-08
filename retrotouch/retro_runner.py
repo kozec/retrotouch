@@ -24,8 +24,9 @@ LOG_LEVELS = [
 
 class LibraryData(ctypes.Structure):
 	_fields_ = [
-		("parent", ctypes.c_int),
 		("respath", ctypes.c_char_p),
+		("parent", ctypes.c_int),
+		("window", ctypes.c_int),
 		("cb_log",  cb_log_t),
 		("cb_render_size_changed",  cb_render_size_changed_t),
 		("input_state", ctypes.POINTER(ctypes.c_uint)),
@@ -56,8 +57,8 @@ class Native:
 		self.__libdata.private = None
 		self._libdata = ctypes.byref(self.__libdata)
 		
-		
 		assert 0 == self._lib.rt_init(self._libdata), "Failed to initialiaze native code"
+		self.call("window_created", self.__libdata.window)
 	
 	
 	def _cb_log(self, tag, level, message):
@@ -103,8 +104,8 @@ class Native:
 class RetroRunner(Native, RPC):
 	
 	def __init__(self, respath, read_fd, write_fd, input_fname, parent, core, game):
-		Native.__init__(self, respath, parent, input_fname)
 		RPC.__init__(self, read_fd, write_fd)
+		Native.__init__(self, respath, parent, input_fname)
 		self.load_core(core)
 		self.load_game(game)
 	

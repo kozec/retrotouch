@@ -4,7 +4,7 @@ RetroTouch - Wrapper
 
 Wrapper around native c code
 """
-from gi.repository import Gio
+from gi.repository import Gio, GdkX11
 from retrotouch.rpc import RPC, decode_call, decode_size, prepare_mmap
 import os, tempfile, mmap, logging, subprocess, ctypes
 log = logging.getLogger("Wrapper")
@@ -12,16 +12,17 @@ log = logging.getLogger("Wrapper")
 
 class Wrapper(RPC):
 	
-	def __init__(self, app, socket, core, game):
+	def __init__(self, app, parent, core, game):
 		# Store variables
 		self.app = app
-		self.socket = socket
+		self.parent = parent
 		self.core = core
 		self.game = game
+		self.window = None
 		self.app.on_playpause_changed(paused=True)
 		
 		# Prepare GTK
-		self.socket.realize()
+		self.parent.realize()
 		
 		# Prepare mmap
 		tmp, self.input_mmap = prepare_mmap()
@@ -36,7 +37,7 @@ class Wrapper(RPC):
 		# Start retro_runner
 		self.proc = subprocess.Popen([
 			"python", "retrotouch/retro_runner.py",
-			str(his_rfd), str(his_wfd), str(self.socket.get_id()),
+			str(his_rfd), str(his_wfd), str(self.parent.get_window().get_xid()),
 			tmp.name, self.core, self.game]) 
 		log.debug("Subprocess started")
 		os.close(his_rfd); os.close(his_wfd)
@@ -74,11 +75,22 @@ class Wrapper(RPC):
 	
 	
 	def render_size_changed(self, width, height):
-		self.socket.set_size_request(width, height)
+		self.parent.set_size_request(width, height)
 	
 	
 	def paused_changed(self, paused):
 		self.app.on_playpause_changed(paused=paused)
+	
+	
+	def window_created(self, xid):
+		self.window = GdkX11.X11Window.foreign_new_for_display(
+			self.parent.get_window().get_display(),
+			xid)
+	
+	
+	def set_size_allocation(self, width, height):
+		if self.window:
+			self.window.move_resize(0, 0, width, height)
 	
 	
 	def set_button(self, button, state):

@@ -125,16 +125,29 @@ class App(Gtk.Application):
 	def load_game(self, core, game_path):
 		if self.wrapper:
 			self.wrapper.destroy()
-		socket = self.builder.get_object("socket")
-		self.wrapper = Wrapper(self, socket, self.find_core_filename(core), game_path)
+		ebMain = self.builder.get_object("ebMain")
+		self.wrapper = Wrapper(self, ebMain, self.find_core_filename(core), game_path)
 	
 	
 	def on_btSettings_toggled(self, bt, *a):
 		rvToolbar = self.builder.get_object("rvToolbar")
-		if bt.get_active():
-			rvToolbar.set_reveal_child(True)
+		def change(*a):
+			if bt.get_active():
+				rvToolbar.set_reveal_child(True)
+			else:
+				rvToolbar.set_reveal_child(False)
+			return False
+		
+		def pause_resume(*a):
+			self.on_btPlayPause_clicked()
+			return False
+		
+		if self.paused:
+			change()
 		else:
-			rvToolbar.set_reveal_child(False)
+			pause_resume()
+			GLib.idle_add(change)
+			GLib.timeout_add(rvToolbar.get_transition_duration() + 50, pause_resume)
 	
 	
 	def on_window_delete_event(self, *a):
@@ -154,12 +167,18 @@ class App(Gtk.Application):
 	
 	
 	def on_btPlayPause_clicked(self, *a):
-		self.wrapper.set_paused(not self.paused)
+		if self.wrapper:
+			self.wrapper.set_paused(not self.paused)
 	
 	
 	def on_ebMain_focus_out_event(self, box, whatever):
 		# box.grab_focus()
 		pass
+	
+	
+	def on_ebMain_size_allocate(self, eb, rect):
+		if self.wrapper:
+			self.wrapper.set_size_allocation(rect.width, rect.height)
 	
 	
 	def dpad_update(self, widget, event):
@@ -294,6 +313,7 @@ class App(Gtk.Application):
 	def do_startup(self, *a):
 		Gtk.Application.do_startup(self, *a)
 		self.setup_widgets()
+	
 
 
 class TouchData:

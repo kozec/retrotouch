@@ -26,6 +26,7 @@ typedef struct {
 	unsigned int draw_width;
 	unsigned int draw_height;
 	enum HwRenderState hw_render_state;
+	Display* dpy;
 	
 	struct {
 		uint64_t since;
@@ -39,11 +40,6 @@ typedef struct {
 		snd_pcm_uframes_t buffer_size;
 		snd_pcm_t* device;
 	} audio;
-	
-	struct {
-		Display* dpy;
-		Window win;
-	} x;
 	
 	struct {
 		GLuint program;
@@ -66,8 +62,9 @@ typedef struct {
 
 
 typedef struct {
-	Window parent;
 	const char* respath;
+	int parent;
+	int window;
 	void (*cb_log) (const char* tag, int level, const char* message);
 	void (*cb_render_size_changed) (int width, int height);
 	uint* input_state;

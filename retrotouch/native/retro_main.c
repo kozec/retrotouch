@@ -39,7 +39,7 @@ int x_init(LibraryData* data) {
 	Colormap cmap;
 	
 	// Open X connection
-	Display* dpy = data->private->x.dpy = XOpenDisplay(NULL);
+	Display* dpy = data->private->dpy = XOpenDisplay(NULL);
 	if (dpy == NULL) {
 		rt_set_error(data, "Failed to open display");
 		return 1;
@@ -53,11 +53,11 @@ int x_init(LibraryData* data) {
 	cmap = XCreateColormap(dpy, parent, vi->visual, AllocNone);
 	wa.colormap = cmap;
 	wa.event_mask = ExposureMask | StructureNotifyMask;
-	data->private->x.win = XCreateWindow(dpy, parent, 0, 0, 600, 600, 0,
+	data->window = XCreateWindow(dpy, parent, 0, 0, 600, 600, 0,
 		vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &wa);
-	XReparentWindow(dpy, data->private->x.win, data->parent, 0, 0);
-	XMapWindow(dpy, data->private->x.win);
-	XStoreName(dpy, data->private->x.win, "RetroTouch");
+	XReparentWindow(dpy, data->window, data->parent, 0, 0);
+	XMapWindow(dpy, data->window);
+	XStoreName(dpy, data->window, "RetroTouch");
 	
 	data->private->gl.ctx = glXCreateContext(dpy, vi, NULL, GL_TRUE);
 	if (data->private->gl.ctx == NULL) {
@@ -89,15 +89,15 @@ int rt_init(LibraryData* data) {
 inline static void rt_step_xevent(LibraryData* data) {
 	static XEvent xev;
 	
-	while (XPending(data->private->x.dpy)) {
-		XNextEvent(data->private->x.dpy, &xev);
+	while (XPending(data->private->dpy)) {
+		XNextEvent(data->private->dpy, &xev);
 		
 		if (xev.type == Expose) {
 			XWindowAttributes wa;
-			XGetWindowAttributes(data->private->x.dpy, data->private->x.win, &wa);
+			XGetWindowAttributes(data->private->dpy, data->window, &wa);
 			rt_set_draw_size(data, wa.width, wa.height);
 			rt_render(data);
-			glXSwapBuffers(data->private->x.dpy, data->private->x.win);
+			glXSwapBuffers(data->private->dpy, data->window);
 		} else if (xev.type == ConfigureNotify) {
 			rt_set_draw_size(data, xev.xconfigure.width, xev.xconfigure.height);
 		}
@@ -109,7 +109,7 @@ void rt_step_paused(LibraryData* data) {
 	rt_step_xevent(data);
 	rt_make_current(data);
 	rt_render(data);
-	glXSwapBuffers(data->private->x.dpy, data->private->x.win);
+	glXSwapBuffers(data->private->dpy, data->window);
 }	
 
 
@@ -123,5 +123,5 @@ void rt_step(LibraryData* data) {
 	}
 	rt_core_step(data);
 	rt_render(data);
-	glXSwapBuffers(data->private->x.dpy, data->private->x.win);
+	glXSwapBuffers(data->private->dpy, data->window);
 }

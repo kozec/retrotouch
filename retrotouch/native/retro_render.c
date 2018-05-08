@@ -169,7 +169,7 @@ void rt_render(LibraryData* data) {
 
 
 void rt_make_current(LibraryData* data) {
-	glXMakeCurrent(data->private->x.dpy, data->private->x.win, data->private->gl.ctx);
+	glXMakeCurrent(data->private->dpy, data->window, data->private->gl.ctx);
 }
 
 
