@@ -162,12 +162,13 @@ class App(Gtk.Application):
 			try:
 				os.makedirs(path)
 			except: pass
-			savefile = os.path.join(path, "%s-%s.sav" % (
+			
+			savefile = os.path.join(path, "%s-%s" % (
 				"game",
 				datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 			))
-			
-			self.wrapper.save_state(savefile)
+			# self.wrapper.save_state("%s.sav" % (savefile, ))
+			self.wrapper.save_screenshot("%s.png" % (savefile, ))
 	
 	
 	def on_window_delete_event(self, *a):

@@ -97,6 +97,10 @@ class Wrapper(RPC):
 		self.call('save_state', filename)
 	
 	
+	def save_screenshot(self, filename):
+		self.call('save_screenshot', filename)
+	
+	
 	def set_button(self, button, state):
 		if state:
 			self.input_state.value |= 1 << button

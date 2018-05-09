@@ -103,6 +103,10 @@ class Native:
 	
 	def save_state(self, filename):
 		assert 0 == self._lib.rt_save_state(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
+	
+	
+	def save_screenshot(self, filename):
+		assert 0 == self._lib.rt_save_screenshot(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
 
 
 class RetroRunner(Native, RPC):	

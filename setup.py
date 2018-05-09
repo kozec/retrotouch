@@ -26,7 +26,7 @@ if __name__ == "__main__":
 						'retrotouch/native/retro_internal.c',
 						'retrotouch/native/gltools.c',
 					],
-					libraries = [ 'GL', 'GLX', 'asound' ],
+					libraries = [ 'GL', 'GLX', 'asound', 'png' ],
 					include_dirs = [
 						"retrotouch/native",
 						"/usr/include/",

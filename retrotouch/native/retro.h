@@ -91,6 +91,11 @@ void rt_set_render_size(LibraryData* data, int width, int height);
 // Callback called actual window to which image is drawn is resized
 void rt_set_draw_size(LibraryData* data, int width, int height);
 
+// Saves PNG screenshot to given file
+int rt_save_screenshot(LibraryData* data, const char* filename);
+// Saves game state to given file
+int rt_save_state(LibraryData* data, const char* filename);
+
 // Callback called when core has video frame ready
 void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsigned height, size_t pitch);
 // Callback called when core requests HW rendering. Returns 0 for success

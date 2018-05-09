@@ -6,6 +6,8 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 #include <GL/glext.h>
+#define PNG_DEBUG 3
+#include <png.h>
 #include <retro.h>
 #include <gltools.h>
 
@@ -129,6 +131,7 @@ void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsign
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
 		width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, frame);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	data->private->frame = frame;
 }
 
 
@@ -171,6 +174,7 @@ void rt_render(LibraryData* data) {
 void rt_make_current(LibraryData* data) {
 	glXMakeCurrent(data->private->dpy, data->window, data->private->gl.ctx);
 }
+
 
 
 void rt_set_render_size(LibraryData* data, int width, int height) {
@@ -233,4 +237,93 @@ void rt_hw_render_reset(LibraryData* data) {
 	}
 	
 	data->private->hw_render_state = HW_RENDER_NEEDS_RESET;
+}
+
+
+int rt_save_screenshot(LibraryData* data, const char* filename) {
+	size_t src_step = 0, src_row_size = 0;
+	size_t dst_row_size = 0;
+	const char* colorspace = data->private->gl.colorspace;
+	
+	if (data->private->frame == NULL) {
+		LOG(RETRO_LOG_ERROR, "Failed to save screenshot: No frame generated");
+		return 1;
+	}
+	if ((colorspace != NULL) && (strcmp(colorspace, "COLORSPACE_RGB") == 0)) {
+		src_step = 4;
+		src_row_size = 4 * data->private->frame_width;
+		dst_row_size = 3 * data->private->frame_width;
+		// TODO: Maybe support for multiple colorspaces
+	} else {
+		LOG(RETRO_LOG_ERROR, "Failed to save screenshot: Unknown colorspace");
+		return 1;
+	}
+	
+	png_bytep* rows = (png_bytep*) malloc(sizeof(png_bytep) * data->private->frame_height);
+	png_bytep frame = malloc(dst_row_size * data->private->frame_width);
+	if ((frame == NULL) || (rows == NULL)) {
+		free(frame); free(rows);
+		LOG(RETRO_LOG_ERROR, "Failed to save screenshot: Failed to allocate memory");
+		return 2;
+	}
+	
+	FILE* f = fopen(filename, "wb");
+
+	png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	png_infop info_ptr = (png_ptr==NULL) ? NULL : png_create_info_struct(png_ptr);
+	if ((f == NULL) || (png_ptr == NULL) || (info_ptr == NULL)) {
+		free(frame); free(rows);
+		LOG(RETRO_LOG_ERROR, "Failed to save screenshot: Failed to open PNG file");
+		return 3;
+	}
+	for (size_t y=0; y<data->private->frame_height; y++) {
+		png_bytep src_row = (png_bytep)(data->private->frame + (y * src_row_size));
+		png_bytep dst_row = frame + (y * dst_row_size);
+		rows[y] = dst_row;
+		for (size_t x=0; x<data->private->frame_width; x++) {
+			*(dst_row + (x * 3) + 0) = *(src_row + (x * src_step) + 2);
+			*(dst_row + (x * 3) + 1) = *(src_row + (x * src_step) + 1);
+			*(dst_row + (x * 3) + 2) = *(src_row + (x * src_step) + 0);
+		}
+	}
+	
+	if (setjmp(png_jmpbuf(png_ptr))) {
+		free(frame); free(rows);
+		LOG(RETRO_LOG_ERROR, "Failed to save screenshot: Failed to initialize PNG file");
+		return 4;
+	}
+	
+	png_init_io(png_ptr, f);
+	if (setjmp(png_jmpbuf(png_ptr))) {
+		free(frame); free(rows);
+		LOG(RETRO_LOG_ERROR, "Failed to save screenshot: Failed to write PNG header");
+		return 5;
+	}
+	
+	png_set_IHDR(png_ptr, info_ptr,
+		data->private->frame_width, data->private->frame_height,
+		8, PNG_COLOR_TYPE_RGB,
+		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+	
+	png_write_info(png_ptr, info_ptr);
+	if (setjmp(png_jmpbuf(png_ptr))) {
+		free(frame); free(rows);
+		LOG(RETRO_LOG_ERROR, "Failed to save screenshot: Failed to write image");
+		return 6;
+	}
+	
+	png_write_image(png_ptr, rows);
+	
+	if (setjmp(png_jmpbuf(png_ptr))) {
+		free(frame); free(rows);
+		LOG(RETRO_LOG_ERROR, "Failed to save screenshot: Failed to finish image");
+		return 7;
+	}
+	png_write_end(png_ptr, NULL);
+	
+	fclose(f);
+	
+	free(frame); free(rows);
+	LOG(RETRO_LOG_INFO, "Screenshot saved to '%s'", filename);
+	return 0;
 }
