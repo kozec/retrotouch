@@ -5,7 +5,7 @@ RetroTouch - App
 Main application window
 """
 from __future__ import unicode_literals
-from gi.repository import Gtk, Gdk, Gio, GLib
+from gi.repository import Gtk, Gdk, Gio, GLib, GdkPixbuf
 from retrotouch.svg_widget import SVGWidget
 from retrotouch.native.wrapper import Wrapper
 from retrotouch.paths import get_data_path
@@ -85,6 +85,10 @@ class App(Gtk.Application):
 		
 		# Glib.idle_add(self.select_core, "./Danganronpa [EN][v1.0][Full].iso")
 		GLib.idle_add(self.select_core, "./Super Mario Bros (E).nes")
+		
+		btLoad = self.builder.get_object("btLoad")
+		btLoad.set_active(True)
+		# GLib.idle_add(self.on_btLoad_toggled, btLoad)
 	
 	
 	def select_core(self, game_filename):
@@ -151,6 +155,15 @@ class App(Gtk.Application):
 			GLib.timeout_add(rvToolbar.get_transition_duration() + 50, pause_resume)
 	
 	
+	def on_btLoad_toggled(self, bt, *a):
+		ppLoadGame = self.builder.get_object("ppLoadGame")
+		if bt.get_active():
+			self.load_savegames()
+			ppLoadGame.set_visible(True)
+		# else:
+		# 	stLeft.set_visible_child(asLeft)
+	
+	
 	def on_btPlayPause_clicked(self, *a):
 		if self.wrapper:
 			self.wrapper.set_paused(not self.paused)
@@ -163,12 +176,11 @@ class App(Gtk.Application):
 				os.makedirs(path)
 			except: pass
 			
-			savefile = os.path.join(path, "%s-%s" % (
-				"game",
-				datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-			))
-			# self.wrapper.save_state("%s.sav" % (savefile, ))
-			self.wrapper.save_screenshot("%s.png" % (savefile, ))
+			date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+			filename = "%s-%s" % ("game", date)
+			savefile = os.path.join(path, filename)
+			
+			self.wrapper.save_both(savefile, "sav", "png")
 	
 	
 	def on_window_delete_event(self, *a):
@@ -193,8 +205,20 @@ class App(Gtk.Application):
 	
 	
 	def on_ebMain_size_allocate(self, eb, rect):
+		print rect
 		if self.wrapper:
 			self.wrapper.set_size_allocation(rect.width, rect.height)
+	
+	
+	def load_savegames(self):
+		lstLoadGame = self.builder.get_object("lstLoadGame")
+		lstLoadGame.clear()
+		path = get_data_path()
+		for name in os.listdir(path):
+			if name.endswith(".png"):
+				pb = GdkPixbuf.Pixbuf.new_from_file_at_size(
+							os.path.join(path, name), 128, 128)
+				lstLoadGame.append((pb, name))
 	
 	
 	def dpad_update(self, widget, event):

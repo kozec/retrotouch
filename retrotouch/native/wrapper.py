@@ -56,7 +56,7 @@ class Wrapper(RPC):
 			self._read.read_bytes_async(4, 0, self._cancel, recieved_size)
 		
 		self._read = Gio.UnixInputStream.new(read_fd, True)
-		self._write = os.fdopen(write_fd, 'wb')
+		self._write = os.fdopen(write_fd, 'wb', 1)
 		self._cancel = Gio.Cancellable()
 		self._buffer = b" " * 4
 		self._read.read_bytes_async(4, 0, self._cancel, recieved_size)
@@ -99,6 +99,10 @@ class Wrapper(RPC):
 	
 	def save_screenshot(self, filename):
 		self.call('save_screenshot', filename)
+	
+	
+	def save_both(self, prefix, ext_state, ext_screenshot):
+		self.call('save_both', prefix, ext_state, ext_screenshot)
 	
 	
 	def set_button(self, button, state):
