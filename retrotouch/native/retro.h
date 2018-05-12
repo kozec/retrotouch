@@ -21,6 +21,7 @@ enum HwRenderState {
 typedef struct {
 	char error[1024];
 	const char* frame;
+	char* saved_frame;
 	unsigned int frame_width;
 	unsigned int frame_height;
 	unsigned int draw_width;
@@ -95,6 +96,8 @@ void rt_set_draw_size(LibraryData* data, int width, int height);
 int rt_save_screenshot(LibraryData* data, const char* filename);
 // Saves game state to given file
 int rt_save_state(LibraryData* data, const char* filename);
+// Loads game state from given file
+int rt_load_state(LibraryData* data, const char* filename);
 
 // Callback called when core has video frame ready
 void rt_retro_frame(LibraryData* data, const char* frame, unsigned width, unsigned height, size_t pitch);

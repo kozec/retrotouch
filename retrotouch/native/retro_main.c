@@ -123,5 +123,6 @@ void rt_step(LibraryData* data) {
 	}
 	rt_core_step(data);
 	rt_render(data);
+	// printf("glXSwapBuffers:  %p\n", data->window);
 	glXSwapBuffers(data->private->dpy, data->window);
 }

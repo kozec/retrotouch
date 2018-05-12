@@ -85,10 +85,6 @@ class App(Gtk.Application):
 		
 		# Glib.idle_add(self.select_core, "./Danganronpa [EN][v1.0][Full].iso")
 		GLib.idle_add(self.select_core, "./Super Mario Bros (E).nes")
-		
-		btLoad = self.builder.get_object("btLoad")
-		btLoad.set_active(True)
-		# GLib.idle_add(self.on_btLoad_toggled, btLoad)
 	
 	
 	def select_core(self, game_filename):
@@ -127,6 +123,11 @@ class App(Gtk.Application):
 		return "/usr/lib/libretro/%s_libretro.so" % (core, )
 	
 	
+	def on_close_dont_destroy(self, window, *a):
+		window.set_visible(False)
+		return True
+	
+	
 	def load_game(self, core, game_path):
 		if self.wrapper:
 			self.wrapper.destroy()
@@ -134,34 +135,42 @@ class App(Gtk.Application):
 		self.wrapper = Wrapper(self, ebMain, self.find_core_filename(core), game_path)
 	
 	
-	def on_btSettings_toggled(self, bt, *a):
-		rvToolbar = self.builder.get_object("rvToolbar")
-		def change(*a):
-			if bt.get_active():
-				rvToolbar.set_reveal_child(True)
-			else:
-				rvToolbar.set_reveal_child(False)
-			return False
-		
-		def pause_resume(*a):
-			self.on_btPlayPause_clicked()
-			return False
-		
-		if self.paused:
-			change()
-		else:
-			pause_resume()
-			GLib.idle_add(change)
-			GLib.timeout_add(rvToolbar.get_transition_duration() + 50, pause_resume)
+	def load_savegames(self):
+		lstLoadGame = self.builder.get_object("lstLoadGame")
+		lstLoadGame.clear()
+		path = get_data_path()
+		for name in reversed(sorted(os.listdir(path))):
+			# TODO: Don't list screenshots, saves are important
+			if name.endswith(".png"):
+				filepath = os.path.join(path, name)
+				savepath = filepath[:-4] + ".sav"
+				pb = GdkPixbuf.Pixbuf.new_from_file_at_size(
+							filepath, 128, 128)
+				lstLoadGame.append(( pb, name, savepath) )
 	
 	
-	def on_btLoad_toggled(self, bt, *a):
-		ppLoadGame = self.builder.get_object("ppLoadGame")
-		if bt.get_active():
-			self.load_savegames()
-			ppLoadGame.set_visible(True)
-		# else:
-		# 	stLeft.set_visible_child(asLeft)
+	def on_btSettings_clicked(self, bt, *a):
+		ppMenu = self.builder.get_object("ppMenu")
+		ppMenu.popup()
+	
+	
+	def on_btShowLoadScreen_clicked(self, *a):
+		ppMenu = self.builder.get_object("ppMenu")
+		dlgLoadGame = self.builder.get_object("dlgLoadGame")
+		ppMenu.popdown()
+		self.load_savegames()
+		dlgLoadGame.set_visible(True)
+	
+	
+	def on_btLoadGame_clicked(self, *a):
+		ivLoadGame = self.builder.get_object("ivLoadGame")
+		dlgLoadGame = self.builder.get_object("dlgLoadGame")
+		try:
+			filename = ivLoadGame.get_model()[ivLoadGame.get_selected_items()[0]][-1]
+		except IndexError:
+			return
+		dlgLoadGame.set_visible(False)
+		self.wrapper.load_state(filename)
 	
 	
 	def on_btPlayPause_clicked(self, *a):
@@ -208,17 +217,6 @@ class App(Gtk.Application):
 		print rect
 		if self.wrapper:
 			self.wrapper.set_size_allocation(rect.width, rect.height)
-	
-	
-	def load_savegames(self):
-		lstLoadGame = self.builder.get_object("lstLoadGame")
-		lstLoadGame.clear()
-		path = get_data_path()
-		for name in os.listdir(path):
-			if name.endswith(".png"):
-				pb = GdkPixbuf.Pixbuf.new_from_file_at_size(
-							os.path.join(path, name), 128, 128)
-				lstLoadGame.append((pb, name))
 	
 	
 	def dpad_update(self, widget, event):

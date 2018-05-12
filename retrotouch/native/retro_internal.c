@@ -22,6 +22,7 @@ struct CoreData {
 	void (*retro_run)(void);
 	size_t (*retro_serialize_size)(void);
 	bool (*retro_serialize)(void *data, size_t size);
+	bool (*retro_unserialize)(const void *data, size_t size);
 	bool (*retro_load_game)(const struct retro_game_info *game);
 	void (*retro_unload_game)(void);
 	struct retro_hw_render_callback hw_render_callback;
@@ -254,6 +255,7 @@ int rt_core_load(LibraryData* data, const char* filename) {
 	load_retro_sym(retro_load_game);
 	load_retro_sym(retro_unload_game);
 	load_retro_sym(retro_serialize_size);
+	load_retro_sym(retro_unserialize);
 	load_retro_sym(retro_serialize);
 	
 	load_sym(set_environment, retro_set_environment);
@@ -320,24 +322,24 @@ int rt_game_load(LibraryData* data, const char* filename) {
 
 
 int rt_save_state(LibraryData* data, const char* filename) {
-	size_t size = current->core->retro_serialize_size();
-	if (current->core->save_state == NULL) {
-		current->core->save_state = malloc(size);
-		if (current->core->save_state == NULL) {
+	size_t size = data->core->retro_serialize_size();
+	if (data->core->save_state == NULL) {
+		data->core->save_state = malloc(size);
+		if (data->core->save_state == NULL) {
 			LOG(RETRO_LOG_ERROR, "Failed to save state: Failed to allocate memory");
 			return 2;
 		}
 	}
 	
-	if (current->core->retro_serialize(current->core->save_state, size)) {
+	if (data->core->retro_serialize(data->core->save_state, size)) {
 		FILE* f = fopen(filename, "wb");
 		if (f == NULL) {
 			LOG(RETRO_LOG_ERROR, "Failed to save state: Failed to open save file");
 			return 3;
 		}
-		if (fwrite(current->core->save_state, size, 1, f) < 1) {
+		if (fwrite(data->core->save_state, size, 1, f) < 1) {
 			LOG(RETRO_LOG_ERROR, "Failed to save state: Write failed");
-			return 3;
+			return 4;
 		}
 		fclose(f);
 	} else {
@@ -345,5 +347,56 @@ int rt_save_state(LibraryData* data, const char* filename) {
 		return 1;
 	}
 	LOG(RETRO_LOG_INFO, "State saved to '%s'", filename);
+	return 0;
+}
+
+
+int rt_load_state(LibraryData* data, const char* filename) {
+	FILE* f = fopen(filename, "rb");
+	if (f == NULL) {
+		LOG(RETRO_LOG_ERROR, "Failed to load state: Failed to open file");
+		return 3;
+	}
+	
+	fseek(f, 0, SEEK_END);
+	size_t size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	char* state = malloc(size + 1);
+	if (state == NULL) {
+		LOG(RETRO_LOG_ERROR, "Failed to load state: Failed to allocate memory");
+		return 2;
+	}
+	
+	if (fread(state, size, 1, f) < 1) {
+		LOG(RETRO_LOG_ERROR, "Failed to load state: Read failed");
+		free(state);
+		return 4;
+	}
+	fclose(f);
+	
+	if (data->private->frame != NULL) {
+		// TODO: Possibly overallocating, this should depend on colorspace
+		size_t frame_size = 4 * data->private->frame_width * data->private->frame_height;
+		char* new_saved_frame = malloc(frame_size);
+		if (new_saved_frame == NULL) {
+			LOG(RETRO_LOG_ERROR, "Failed to load state: Failed to allocate memory");
+			free(state);
+			return 12;
+		}
+		memcpy(new_saved_frame, data->private->frame, frame_size);
+		if (data->private->saved_frame != NULL)
+			free(data->private->saved_frame);
+		data->private->saved_frame = new_saved_frame;
+		data->private->frame = new_saved_frame;
+	}
+	
+	rt_make_current(data);
+	if (!data->core->retro_unserialize(state, size)) {
+		LOG(RETRO_LOG_ERROR, "Failed to load state");
+		free(state);
+		return 1;
+	}
+	
+	free(state);
 	return 0;
 }

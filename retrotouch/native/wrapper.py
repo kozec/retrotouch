@@ -6,11 +6,13 @@ Wrapper around native c code
 """
 from gi.repository import Gio, GdkX11
 from retrotouch.rpc import RPC, decode_call, decode_size, prepare_mmap
-import os, tempfile, mmap, logging, subprocess, ctypes
+import os, logging, subprocess, ctypes
 log = logging.getLogger("Wrapper")
 
 
 class Wrapper(RPC):
+	GDB = False
+	VALGRIND = False
 	
 	def __init__(self, app, parent, core, game):
 		# Store variables
@@ -35,10 +37,24 @@ class Wrapper(RPC):
 		RPC.__init__(self, mine_rfd, mine_wfd)
 		
 		# Start retro_runner
-		self.proc = subprocess.Popen([
-			"python", "retrotouch/retro_runner.py",
-			str(his_rfd), str(his_wfd), str(self.parent.get_window().get_xid()),
-			tmp.name, self.core, self.game]) 
+		if self.GDB:
+			self.proc = subprocess.Popen([ "gdb", "python" ], stdin=subprocess.PIPE)
+			print >>self.proc.stdin, " ".join([ "run", "retrotouch/retro_runner.py",
+				str(his_rfd), str(his_wfd), str(self.parent.get_window().get_xid()),
+				tmp.name, "'%s'" % (self.core,) , "'%s'" % (self.game,) ])
+			print >>self.proc.stdin, "bt"
+		elif self.VALGRIND:
+			self.proc = subprocess.Popen([
+				"valgrind",
+				"--suppressions=resources/valgrind-python.supp",
+				"python", "retrotouch/retro_runner.py",
+				str(his_rfd), str(his_wfd), str(self.parent.get_window().get_xid()),
+				tmp.name, self.core, self.game]) 
+		else:
+			self.proc = subprocess.Popen([
+				"python", "retrotouch/retro_runner.py",
+				str(his_rfd), str(his_wfd), str(self.parent.get_window().get_xid()),
+				tmp.name, self.core, self.game]) 
 		log.debug("Subprocess started")
 		os.close(his_rfd); os.close(his_wfd)
 	
@@ -95,6 +111,10 @@ class Wrapper(RPC):
 	
 	def save_state(self, filename):
 		self.call('save_state', filename)
+	
+	
+	def load_state(self, filename):
+		self.call('load_state', filename)
 	
 	
 	def save_screenshot(self, filename):

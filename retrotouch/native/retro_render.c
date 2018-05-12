@@ -176,7 +176,6 @@ void rt_make_current(LibraryData* data) {
 }
 
 
-
 void rt_set_render_size(LibraryData* data, int width, int height) {
 	data->private->frame_width = width;
 	data->private->frame_height = height;

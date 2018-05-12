@@ -8,7 +8,7 @@ and render libretro core as fast as possible.
 from __future__ import unicode_literals
 from retrotouch.paths import get_share_path
 from retrotouch.rpc import RPC, prepare_mmap
-import logging, ctypes, mmap, sys
+import logging, ctypes, sys
 log = logging.getLogger("RRunner")
 
 
@@ -103,6 +103,10 @@ class Native:
 	
 	def save_state(self, filename):
 		assert 0 == self._lib.rt_save_state(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
+	
+	
+	def load_state(self, filename):
+		assert 0 == self._lib.rt_load_state(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
 	
 	
 	def save_screenshot(self, filename):
