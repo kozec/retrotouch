@@ -133,6 +133,7 @@ class App(Gtk.Application):
 			self.wrapper.destroy()
 		ebMain = self.builder.get_object("ebMain")
 		self.wrapper = Wrapper(self, ebMain, self.find_core_filename(core), game_path)
+		self.wrapper.set_vsync(False)
 	
 	
 	def load_savegames(self):
@@ -214,7 +215,6 @@ class App(Gtk.Application):
 	
 	
 	def on_ebMain_size_allocate(self, eb, rect):
-		print rect
 		if self.wrapper:
 			self.wrapper.set_size_allocation(rect.width, rect.height)
 	

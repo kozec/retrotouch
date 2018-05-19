@@ -96,10 +96,14 @@ class Native:
 		assert 0 == self._lib.rt_core_load(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
 	
 	
+	def set_vsync(self, enabled):
+		assert 0 == self._lib.rt_vsync_enable(self._libdata, ctypes.c_int(enabled))
+	
+	
 	def load_game(self, filename):
 		assert self._lib.rt_check_error(self._libdata) is None, "Error detected"
 		assert 0 == self._lib.rt_game_load(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
-	
+
 	
 	def save_state(self, filename):
 		assert 0 == self._lib.rt_save_state(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))

@@ -136,6 +136,10 @@ class Wrapper(RPC):
 		self.call('set_paused', paused)
 	
 	
+	def set_vsync(self, enabled):
+		self.call('set_vsync', enabled)
+	
+	
 	def load_core(self, *a):
 		pass
 	

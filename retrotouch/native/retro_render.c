@@ -44,6 +44,11 @@ int rt_init_gl(LibraryData* data) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	
+	// Grab extensions, disable vsync
+	data->private->gl.extensions = glXQueryExtensionsString(data->private->dpy, 0);
+	LOG(RETRO_LOG_DEBUG, "Available GL extensions: %s", data->private->gl.extensions);
+	data->private->gl.frame_skip = 1;
+	
 	// Cleanup
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -110,10 +115,26 @@ void rt_compile_shaders(LibraryData* data) {
 }
 
 
-uint64_t get_time() {
+useconds_t rt_get_time() {
 	static struct timeval t;
 	gettimeofday(&t, NULL);
-	return (t.tv_sec * (uint64_t)1000) + (t.tv_usec / 1000);
+	return (t.tv_sec * (useconds_t)1000000) + (t.tv_usec);
+}
+
+
+int rt_vsync_enable(LibraryData* data, int i) {
+	if (strstr(data->private->gl.extensions, "GLX_MESA_swap_control") != NULL) {
+		typedef int (*glXSwapIntervalMESA_t)(int interval);
+		glXSwapIntervalMESA_t glXSwapIntervalMESA = (glXSwapIntervalMESA_t)glXGetProcAddress("glXSwapIntervalMESA");
+		glXSwapIntervalMESA(i);
+	} else {
+		LOG(RETRO_LOG_ERROR, "Cannot enable/disable VSync - no extension available");
+		return 1;
+	}
+	
+	data->private->gl.vsync_enabled = i;
+	LOG(RETRO_LOG_DEBUG, "VSync %s", (i == 1) ? "disabled" : "enabled");
+	return 0;
 }
 
 
@@ -151,13 +172,13 @@ void rt_render(LibraryData* data) {
 	glUseProgram(0);
 	
 #if RT_DEBUG_FPS
-	uint64_t now = get_time();
+	useconds_t now = rt_get_time() / 1000;
 	if ((data->private->fps.since == 0) || (now > data->private->fps.since + 1000)) {
 		if (data->private->fps.since > 0) {
-			uint64_t delta = now - data->private->fps.since;
-			uint64_t ticks = data->private->fps.ticks * 1000 / delta;
-			uint64_t drawn = data->private->fps.drawn * 1000 / delta;
-			uint64_t generated = data->private->fps.generated * 1000 / delta;
+			useconds_t delta = now - data->private->fps.since;
+			useconds_t ticks = data->private->fps.ticks * 1000 / delta;
+			useconds_t drawn = data->private->fps.drawn * 1000 / delta;
+			useconds_t generated = data->private->fps.generated * 1000 / delta;
 			LOG(RETRO_LOG_DEBUG, "FPS: %u ticks %u drawn %u generated", ticks, drawn, generated);
 		}
 		data->private->fps.since = now;

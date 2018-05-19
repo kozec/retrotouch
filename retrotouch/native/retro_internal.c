@@ -317,6 +317,9 @@ int rt_game_load(LibraryData* data, const char* filename) {
 	if (0 != rt_audio_init(current, av.timing.sample_rate))
 		return 1;
 	current->core->game_loaded = true;
+	current->private->gl.target_frame_time = (double)1000000.0 / av.timing.fps;
+	LOG(RETRO_LOG_DEBUG, "Target FPS: %.2f, %luµs per frame",
+						av.timing.fps, current->private->gl.target_frame_time);
 	return 0;
 }
 

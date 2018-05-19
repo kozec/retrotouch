@@ -6,6 +6,7 @@
 #include <GL/glx.h>
 #include <alsa/asoundlib.h>
 #include <libretro.h>
+#include <unistd.h>
 
 #define RT_MAX_PORTS		4
 #define RT_DEBUG_FPS			1
@@ -55,6 +56,10 @@ typedef struct {
 		GLXContext ctx;
 		GLfloat input_size[2];
 		GLfloat output_size[2];
+		useconds_t target_frame_time;
+		unsigned int frame_skip;
+		bool vsync_enabled;
+		const char* extensions;
 		const char* colorspace;
 		bool flipped;
 	} gl;
@@ -76,6 +81,8 @@ typedef struct {
 
 void rt_log(LibraryData* data, const char* tag, enum retro_log_level level, const char *fmt, ...);
 void rt_set_error(LibraryData* data, const char* message);
+// Returns time in µs
+useconds_t rt_get_time();
 
 int rt_init_gl(LibraryData* data);
 void rt_render(LibraryData* data);
@@ -106,6 +113,8 @@ int rt_hw_render_setup(LibraryData* data);
 // Called from event after rt_hw_render_setup is called and gl contect
 // can be acquired, or when render resolution is changed
 void rt_hw_render_reset(LibraryData* data);
+// Enables or disables VSync; Returns 0 on success;
+int rt_vsync_enable(LibraryData* data, int i);
 
 // Signalizes to core that GL context has been reset (used with HW rendering)
 void rt_core_context_reset(LibraryData* data);

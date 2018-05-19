@@ -114,6 +114,7 @@ void rt_step_paused(LibraryData* data) {
 
 
 void rt_step(LibraryData* data) {
+	useconds_t frame_start = (data->private->gl.vsync_enabled) ? 0 : rt_get_time();
 	rt_step_xevent(data);
 	rt_make_current(data);
 	if (data->private->hw_render_state == HW_RENDER_NEEDS_RESET) {
@@ -121,8 +122,17 @@ void rt_step(LibraryData* data) {
 		rt_core_context_reset(data);
 		LOG(RETRO_LOG_DEBUG, "HW rendering set up.");
 	}
-	rt_core_step(data);
+	for(unsigned int i=0; i<data->private->gl.frame_skip; i++)
+		rt_core_step(data);
 	rt_render(data);
-	// printf("glXSwapBuffers:  %p\n", data->window);
 	glXSwapBuffers(data->private->dpy, data->window);
+	
+	if (frame_start) {
+		useconds_t frame_end = rt_get_time();
+		if (frame_end > frame_start) {
+			useconds_t frame_time = frame_end - frame_start;
+			if (frame_time < data->private->gl.target_frame_time)
+				usleep(data->private->gl.target_frame_time - frame_time);
+		}
+	}
 }
