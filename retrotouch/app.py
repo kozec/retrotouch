@@ -142,12 +142,17 @@ class App(Gtk.Application):
 		path = get_data_path()
 		for name in reversed(sorted(os.listdir(path))):
 			# TODO: Don't list screenshots, saves are important
-			if name.endswith(".png"):
+			if name.endswith(".sav"):
 				filepath = os.path.join(path, name)
-				savepath = filepath[:-4] + ".sav"
-				pb = GdkPixbuf.Pixbuf.new_from_file_at_size(
-							filepath, 128, 128)
-				lstLoadGame.append(( pb, name, savepath) )
+				pb = self.get_savegame_icon(filepath, at_size=128)
+				lstLoadGame.append(( pb, name, filepath) )
+	
+	
+	def get_savegame_icon(self, filepath, at_size):
+		filepath = filepath[:-4] + ".png"
+		if os.path.exists(filepath):
+			return GdkPixbuf.Pixbuf.new_from_file_at_size(filepath, at_size, -1)
+		return None
 	
 	
 	def on_btSettings_clicked(self, bt, *a):
@@ -192,6 +197,49 @@ class App(Gtk.Application):
 			
 			self.wrapper.save_both(savefile, "sav", "png")
 	
+	
+	def on_state_saved(self, filename):
+		imgSavedGame = self.builder.get_object("imgSavedGame")
+		txSavedGame = self.builder.get_object("txSavedGame")
+		pb = self.get_savegame_icon(filename, at_size=64)
+		txSavedGame.set_text(os.path.split(filename)[-1][:-4])
+		txSavedGame.set_sensitive(True)
+		txSavedGame._last_filename = filename
+		imgSavedGame.set_from_pixbuf(pb)
+		ppSaved = self.builder.get_object("ppSaved")
+		ppSaved.popup()
+		txSavedGame.grab_focus()
+	
+	
+	def on_txSavedGame_changed(self, txSavedGame):
+		try:
+			old_filename = txSavedGame._last_filename
+		except AttributeError:
+			return
+		if not txSavedGame.get_sensitive():
+			return
+		new_name = txSavedGame.get_text()
+		if len(new_name) < 1: return
+		path, old_name = os.path.split(old_filename)
+		ext = old_filename.split(".")[-1]
+		old_screenshot = old_filename[0:-len(ext)] + "png"
+		new_filename = os.path.join(path, "%s.%s" % (new_name, ext))
+		while os.path.exists(new_filename):
+			new_name += "_"
+			new_filename = os.path.join(path, "%s.%s" % (new_name, ext))
+		new_screenshot = new_filename[0:-len(ext)] + "png"
+		
+		try:
+			log.debug("Renaming %s -> %s", old_filename, new_filename)
+			os.rename(old_filename, new_filename)
+			if os.path.exists(old_screenshot):
+				os.rename(old_screenshot, new_screenshot)
+			txSavedGame._last_filename = new_filename
+		except OSError, e:
+			log.exception(e)
+			txSavedGame.set_sensitive(False)
+			del txSavedGame._last_filename
+
 	
 	def on_window_delete_event(self, *a):
 		""" Called when user tries to close window """
@@ -351,7 +399,6 @@ class App(Gtk.Application):
 	def do_startup(self, *a):
 		Gtk.Application.do_startup(self, *a)
 		self.setup_widgets()
-	
 
 
 class TouchData:

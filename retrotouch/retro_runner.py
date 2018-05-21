@@ -107,6 +107,7 @@ class Native:
 	
 	def save_state(self, filename):
 		assert 0 == self._lib.rt_save_state(self._libdata, ctypes.c_char_p(filename.encode("utf-8")))
+		self.call("on_state_saved", filename)
 	
 	
 	def load_state(self, filename):
@@ -121,6 +122,7 @@ class Native:
 		screenshot = "%s.%s" % (prefix, ext_screenshot)
 		assert 0 == self._lib.rt_save_state(self._libdata, ctypes.c_char_p(state.encode("utf-8")))
 		assert 0 == self._lib.rt_save_screenshot(self._libdata, ctypes.c_char_p(screenshot.encode("utf-8")))
+		self.call("on_state_saved", state)
 
 
 class RetroRunner(Native, RPC):	

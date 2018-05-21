@@ -113,6 +113,10 @@ class Wrapper(RPC):
 		self.call('save_state', filename)
 	
 	
+	def on_state_saved(self, filename):
+		self.app.on_state_saved(filename)
+	
+	
 	def load_state(self, filename):
 		self.call('load_state', filename)
 	
