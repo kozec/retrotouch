@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <retro.h>
+#include <retrotouch.h>
 
 #define LOG(...) rt_log(data, "RSound", __VA_ARGS__)
 

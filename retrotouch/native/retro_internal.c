@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dlfcn.h>
+#define GL_GLEXT_PROTOTYPES 1
+#include <GL/gl.h>
 #include <GL/glx.h>
-#include <retro.h>
+#include <retrotouch.h>
 
 #define LOG(...) rt_log(current, "RInternal", __VA_ARGS__)
 
@@ -67,14 +69,31 @@ static void core_log(enum retro_log_level level, const char *fmt, ...) {
 
 
 static bool video_set_pixel_format(unsigned format) {
+	#define CHECK_CHANGED \
+		if (current->private->gl.prog_normal.id != 0) { \
+			if (strcmp(old_colorspace, current->private->gl.colorspace) != 0) { \
+				LOG(RETRO_LOG_WARN, "Pixel format changed after shaders were generated. Regenerating shaders..."); \
+				rt_compile_shaders(current); \
+				rt_setup_texture(current); \
+			} \
+		}
+	const char* old_colorspace = current->private->gl.colorspace;
 	switch (format) {
 		case RETRO_PIXEL_FORMAT_XRGB8888:
-			current->private->gl.colorspace = "COLORSPACE_RGB";
+			current->private->gl.colorspace = "COLORSPACE_RGB8888";
+			current->private->gl.bpp = 4;
+			current->private->gl.pixel_format = GL_RGBA;
+			current->private->gl.pixel_type = GL_UNSIGNED_BYTE;
 			LOG(RETRO_LOG_DEBUG, "Pixel format set to XRGB8888");
-			if (current->private->gl.program != 0) {
-				LOG(RETRO_LOG_WARN, "Pixel format changed after shaders were generated. Regenerating shaders...");
-				rt_compile_shaders(current);
-			}
+			CHECK_CHANGED;
+			return true;
+		case RETRO_PIXEL_FORMAT_RGB565:
+			current->private->gl.colorspace = "COLORSPACE_RGB565";
+			current->private->gl.bpp = 2;
+			current->private->gl.pixel_format = GL_RGB;
+			current->private->gl.pixel_type = GL_UNSIGNED_SHORT_5_6_5;
+			LOG(RETRO_LOG_DEBUG, "Pixel format set to RGB565");
+			CHECK_CHANGED;
 			return true;
 	}
 	LOG(RETRO_LOG_ERROR, "Unknown pixel type %u", format);
@@ -88,7 +107,7 @@ static bool core_environment(unsigned cmd, void* data) {
 
 	switch (cmd) {
 	case RETRO_ENVIRONMENT_GET_LOG_INTERFACE: {
-		struct retro_log_callback *cb = (struct retro_log_callback *)data;
+		struct retro_log_callback* cb = (struct retro_log_callback *)data;
 		cb->log = core_log;
 		break;
 	}
@@ -96,17 +115,27 @@ static bool core_environment(unsigned cmd, void* data) {
 		bval = (bool*)data;
 		*bval = true;
 		break;
-	
-	
-	case RETRO_ENVIRONMENT_SET_VARIABLES:
-		// LOG(RETRO_LOG_DEBUG, "Unhandled RETRO_ENVIRONMENT_SET_VARIABLES");
-		return false;
-	case RETRO_ENVIRONMENT_GET_VARIABLE:
-		// LOG(RETRO_LOG_DEBUG, "Unhandled RETRO_ENVIRONMENT_GET_VARIABLE");
-		return false;
-	case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
-		// LOG(RETRO_LOG_DEBUG, "Unhandled RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE");	
-		return false;
+	case RETRO_ENVIRONMENT_SET_VARIABLES: {
+		const struct retro_variable* var = (const struct retro_variable*)data;
+		for (; var->key != NULL; var++)
+			current->cb_set_variable(var->key, var->value);
+		return true;
+	}
+	case RETRO_ENVIRONMENT_GET_VARIABLE: {
+		struct retro_variable* var = (struct retro_variable*)data;
+		var->value = current->cb_get_variable(var->key);
+		current->variables_changed = 0;
+		return true;
+	}
+	case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE: {
+		bool* changed = (bool*)data;
+		*changed = current->variables_changed;
+		return true;
+	}
+	case RETRO_ENVIRONMENT_GET_INPUT_DEVICE_CAPABILITIES:
+		*((uint64_t*)data) = (1 << RETRO_DEVICE_JOYPAD) |
+			(1 << RETRO_DEVICE_ANALOG) | (1 << RETRO_DEVICE_POINTER);
+		return true;
 	
 	case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT: {
 		const enum retro_pixel_format *fmt = (enum retro_pixel_format *)data;
@@ -117,12 +146,19 @@ static bool core_environment(unsigned cmd, void* data) {
 		return video_set_pixel_format(*fmt);
 	}
 	
+	case RETRO_ENVIRONMENT_SET_GEOMETRY: {
+		const struct retro_game_geometry *geo = (struct retro_game_geometry *)data;
+		rt_set_render_size(current, geo->base_width, geo->base_height);
+		return true;
+	}
+	
 	case RETRO_ENVIRONMENT_GET_USERNAME:
 		*(const char **)data = "RetroTouch";
 		return true;
 	
 	case RETRO_ENVIRONMENT_GET_LANGUAGE:
 		*((enum retro_language*)data) = RETRO_LANGUAGE_ENGLISH;
+		return true;
 	
 	case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
 	case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
@@ -131,8 +167,22 @@ static bool core_environment(unsigned cmd, void* data) {
 	
 	case RETRO_ENVIRONMENT_SET_HW_RENDER: {
 		struct retro_hw_render_callback* cb = (struct retro_hw_render_callback*)data;
-		if (cb->context_type != RETRO_HW_CONTEXT_OPENGL) {
-			LOG(RETRO_LOG_ERROR, "Requested HW context #%i, but only OpenGL (#1) is supported");
+		if (cb->context_type == RETRO_HW_CONTEXT_OPENGL) {
+			// pass
+		} else if (cb->context_type == RETRO_HW_CONTEXT_OPENGLES2) {
+			// Should work everywhere
+			// TODO: Check if it really works everywhere
+		} else if (cb->context_type == RETRO_HW_CONTEXT_OPENGL_CORE) {
+			if ((cb->version_major < 3) || ((cb->version_major == 3) && (cb->version_minor <= 3))) {
+				LOG(RETRO_LOG_DEBUG, "Requested CONTEXT_OPENGL_CORE version %i.%i",
+						cb->version_major, cb->version_minor);
+			} else {
+				LOG(RETRO_LOG_ERROR, "Requested CONTEXT_OPENGL_CORE version %i.%i, but only up to 3.3 is supported",
+						cb->version_major, cb->version_minor);
+				return false;
+			}
+		} else {
+			LOG(RETRO_LOG_ERROR, "Requested HW context #%i, but only OpenGL (#1) is supported", cb->context_type);
 			return false;
 		}
 		cb->get_current_framebuffer = video_driver_get_current_framebuffer;
@@ -177,8 +227,20 @@ static size_t core_audio_sample_batch(const int16_t* audiodata, size_t frames) {
 
 
 static int16_t core_input_state(unsigned port, unsigned device, unsigned index, unsigned id) {
-	if (port == 0)
-		return (*current->input_state & (1<<id)) ? 1 : 0;
+	// TODO: RT_MAX_PORTS
+	if (port == 0) {
+		if (device == RETRO_DEVICE_JOYPAD)
+			return (current->shared_data->input_state.buttons & (1<<id)) ? 1 : 0;
+		else if ((device == RETRO_DEVICE_ANALOG) && (index < RT_MAX_ANALOGS))
+			return current->shared_data->input_state.analogs[(index * 2) + id];
+		else if ((device == RETRO_DEVICE_POINTER) && (index == 0)) {
+			if (id <= RETRO_DEVICE_ID_POINTER_Y)
+				return current->shared_data->input_state.mouse[id];
+			else if (id == RETRO_DEVICE_ID_POINTER_PRESSED)
+				return (current->shared_data->input_state.mouse_buttons &
+							(1 << RETRO_DEVICE_ID_MOUSE_LEFT)) == 0 ? 0 : 1;
+		}
+	}
 	return 0;
 }
 
@@ -206,7 +268,13 @@ void rt_core_step(LibraryData* data) {
 #if RT_DEBUG_FPS
 	data->private->fps.ticks ++;
 #endif
-	current->core->retro_run();
+	if (data->private->gl.fbo == 0) {
+		current->core->retro_run();
+	} else {
+		//glBindFramebuffer(GL_FRAMEBUFFER, data->private->gl.fbo);
+		current->core->retro_run();
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
 }
 
 
@@ -324,6 +392,12 @@ int rt_game_load(LibraryData* data, const char* filename) {
 }
 
 
+int rt_check_saving_supported(LibraryData* data) {
+	size_t size = data->core->retro_serialize_size();
+	return (size > 0) ? 1 : 0;
+}
+
+
 int rt_save_state(LibraryData* data, const char* filename) {
 	size_t size = data->core->retro_serialize_size();
 	if (data->core->save_state == NULL) {
@@ -379,7 +453,7 @@ int rt_load_state(LibraryData* data, const char* filename) {
 	
 	if (data->private->frame != NULL) {
 		// TODO: Possibly overallocating, this should depend on colorspace
-		size_t frame_size = 4 * data->private->frame_width * data->private->frame_height;
+		size_t frame_size = 4 * data->private->internal_width * data->private->internal_height;
 		char* new_saved_frame = malloc(frame_size);
 		if (new_saved_frame == NULL) {
 			LOG(RETRO_LOG_ERROR, "Failed to load state: Failed to allocate memory");

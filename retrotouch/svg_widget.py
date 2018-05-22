@@ -6,13 +6,12 @@ Manipulates SVG on the fly to create weird-looking image.
 Also supports clicking on areas defined in SVG image.
 """
 from __future__ import unicode_literals
-from scc.tools import _
 
 from gi.repository import Gtk, Gdk, GObject, GdkPixbuf, Rsvg
 from xml.etree import ElementTree as ET
 from math import sin, cos, pi as PI
 from collections import OrderedDict
-import os, sys, re, logging
+import re, logging
 
 log = logging.getLogger("Background")
 ET.register_namespace('', "http://www.w3.org/2000/svg")
@@ -30,7 +29,6 @@ class SVGWidget(Gtk.EventBox):
 			# Raised user clicks on defined area
 			b"click"	: (GObject.SignalFlags.RUN_FIRST, None, (object,)),
 	}
-	
 	
 	def __init__(self, filename, init_hilighted=True):
 		Gtk.EventBox.__init__(self)
@@ -51,13 +49,11 @@ class SVGWidget(Gtk.EventBox):
 		self.add(self.image)
 		self.show_all()
 	
-	
 	def set_image(self, filename):
 		self.current_svg = open(filename, "r").read().decode("utf-8")
 		self.cache = OrderedDict()
 		self.areas = []
 		self.parse_image()
-	
 	
 	def parse_image(self):
 		"""
@@ -71,7 +67,6 @@ class SVGWidget(Gtk.EventBox):
 		self.image_width =  float(tree.attrib["width"])
 		self.image_height = float(tree.attrib["height"])
 	
-	
 	def resize(self, width, height):
 		"""
 		Overrides image size.
@@ -81,12 +76,10 @@ class SVGWidget(Gtk.EventBox):
 		self.size_override = width, height
 		self.cache = OrderedDict()
 	
-	
 	def on_mouse_click(self, trash, event):
 		area = self.on_mouse_moved(trash, event)
 		if area is not None:
 			self.emit('click', area)
-	
 	
 	def on_mouse_moved(self, trash, event):
 		"""
@@ -107,13 +100,11 @@ class SVGWidget(Gtk.EventBox):
 			if a.contains(x, y):
 				yield a.name
 	
-	
 	def get_area(self, id):
 		for a in self.areas:
 			if a.name == id:
 				return a
 		return None
-	
 	
 	def get_all_by_prefix(self, prefix):
 		"""
@@ -129,7 +120,6 @@ class SVGWidget(Gtk.EventBox):
 		SVGWidget.find_areas(tree, None, lst, prefix=prefix)
 		return lst
 	
-	
 	def get_area_position(self, area_id):
 		"""
 		Computes and returns area position on image as (x, y, width, height).
@@ -140,7 +130,6 @@ class SVGWidget(Gtk.EventBox):
 		if a:
 			return a.x, a.y, a.w, a.h
 		raise ValueError("Area '%s' not found" % (area_id, ))
-	
 	
 	@staticmethod
 	def find_areas(xml, parent_transform, areas, get_colors=False, prefix="AREA_"):
@@ -164,7 +153,6 @@ class SVGWidget(Gtk.EventBox):
 			else:
 				SVGWidget.find_areas(child, child_transform, areas, get_colors=get_colors, prefix=prefix)
 	
-	
 	def get_rect_area(self, element):
 		"""
 		Returns x, y, width and height of rect element relative to document root.
@@ -181,7 +169,6 @@ class SVGWidget(Gtk.EventBox):
 		
 		return x, y, width, height
 	
-	
 	@staticmethod
 	def color_to_float(colorstr):
 		"""
@@ -192,7 +179,6 @@ class SVGWidget(Gtk.EventBox):
 		if b:
 			return color.red_float, color.green_float, color.blue_float, 1
 		return 1, 0, 1, 1	# uggly purple
-	
 	
 	def hilight(self, buttons):
 		""" Hilights specified button, if same ID is found in svg """
@@ -228,11 +214,9 @@ class SVGWidget(Gtk.EventBox):
 		
 		self.image.set_from_pixbuf(self.cache[cache_id])
 	
-	
 	def get_pixbuf(self):
 		""" Returns pixbuf of current image """
 		return self.image.get_pixbuf()
-	
 	
 	def edit(self):
 		""" Returns new Editor instance bound to this widget """
@@ -252,11 +236,9 @@ class Area:
 		self.w = float(element.attrib.get('width', 0))
 		self.h = float(element.attrib.get('height', 0))
 	
-	
 	def contains(self, x, y):
 		return (x >= self.x and y >= self.y 
 			and x <= self.x + self.w and y <= self.y + self.h)
-	
 	
 	def __str__(self):
 		return "<Area %s,%s %sx%s>" % (self.x, self.y, self.w, self.h)
@@ -284,7 +266,6 @@ class SVGEditor(object):
 			self._svgw = svgw
 			self._tree = ET.fromstring(svgw.current_svg.encode("utf-8"))
 	
-	
 	def commit(self):
 		"""
 		Sends modified SVG back to original SVGWidget instance.
@@ -297,11 +278,9 @@ class SVGEditor(object):
 		
 		return self
 	
-	
 	def to_string(self):
 		""" Returns modivied SVG as string """
 		return ET.tostring(self._tree)
-	
 	
 	@staticmethod
 	def _deep_copy(element):
@@ -313,7 +292,6 @@ class SVGEditor(object):
 			e.append(copy)
 			copy.parent = e
 		return e
-	
 	
 	def clone_element(self, id):
 		"""
@@ -331,7 +309,6 @@ class SVGEditor(object):
 			return copy
 		return None
 	
-	
 	def remove_element(self, e):
 		"""
 		Removes element with specified ID, or, if element is passed,
@@ -345,7 +322,6 @@ class SVGEditor(object):
 		if e is not None:
 			e.parent.remove(e)
 		return self
-	
 	
 	def keep(self, *ids):
 		"""
@@ -370,7 +346,6 @@ class SVGEditor(object):
 		recursive(self._tree)
 		return self
 	
-	
 	@staticmethod
 	def update_parents(tree):
 		"""
@@ -386,7 +361,6 @@ class SVGEditor(object):
 		if not hasattr(tree, "parent"):
 			tree.parent = None
 	
-	
 	@staticmethod
 	def get_element(tree, id):
 		"""
@@ -398,7 +372,6 @@ class SVGEditor(object):
 			tree = tree._tree
 		
 		return SVGEditor.find_by_id(tree, id)
-	
 	
 	@staticmethod
 	def find_by_id(tree, id):
@@ -416,7 +389,6 @@ class SVGEditor(object):
 				return r
 		return None	
 	
-	
 	@staticmethod
 	def find_by_tag(tree, tag):
 		"""
@@ -431,7 +403,6 @@ class SVGEditor(object):
 			if r is not None:
 				return r
 		return None	
-	
 	
 	@staticmethod
 	def recolor(element, color):
@@ -461,7 +432,6 @@ class SVGEditor(object):
 			return True
 		return False
 	
-	
 	@staticmethod
 	def _recolor(tree, s_from, s_to):
 		""" Recursive part of recolor_strokes and recolor_background """
@@ -470,7 +440,6 @@ class SVGEditor(object):
 				if s_from in child.attrib['style']:
 					child.attrib['style'] = child.attrib['style'].replace(s_from, s_to)
 			SVGEditor._recolor(child, s_from, s_to)
-	
 	
 	def recolor_background(self, change_from, change_to):
 		"""
@@ -484,7 +453,6 @@ class SVGEditor(object):
 		SVGEditor._recolor(self._tree, s_from, s_to)
 		return self
 	
-	
 	def recolor_strokes(self, change_from, change_to):
 		"""
 		Recursively travels entire DOM tree and changes every matching
@@ -497,13 +465,11 @@ class SVGEditor(object):
 		SVGEditor._recolor(self._tree, s_from, s_to)
 		return self
 	
-	
 	@staticmethod
 	def matrixmul(X, Y, *a):
 		if len(a) > 0:
 			return SVGEditor.matrixmul(SVGEditor.matrixmul(X, Y), a[0], *a[1:])
 		return [[ sum(a*b for a,b in zip(x,y)) for y in zip(*Y) ] for x in X ]
-	
 	
 	@staticmethod
 	def scale(xml, sx, sy=None):
@@ -516,7 +482,6 @@ class SVGEditor(object):
 			SVGEditor.parse_transform(xml),
 			[ [ sx, 0.0, 0.0 ], [ 0.0, sy, 0.0 ], [ 0.0, 0.0, 1.0 ] ],
 		))
-	
 	
 	@staticmethod
 	def rotate(xml, a, x, y):
@@ -532,7 +497,6 @@ class SVGEditor(object):
 			[ [ 1.0, 0.0, -x ], [ 0.0, 1.0, -y ], [ 0.0, 0.0, 1.0 ] ],
 		))
 	
-	
 	@staticmethod
 	def translate(xml, x, y):
 		"""
@@ -544,7 +508,6 @@ class SVGEditor(object):
 			[ [ 1.0, 0.0, x ], [ 0.0, 1.0, y ], [ 0.0, 0.0, 1.0 ] ],
 		))
 	
-	
 	@staticmethod
 	def set_transform(xml, matrix):
 		"""
@@ -554,7 +517,6 @@ class SVGEditor(object):
 			matrix[0][0], matrix[1][0], matrix[0][1],
 			matrix[1][1], matrix[0][2], matrix[1][2],
 		)
-	
 	
 	@staticmethod
 	def get_translation(elm_or_matrix, absolute=False):
@@ -570,7 +532,6 @@ class SVGEditor(object):
 		
 		return matrix[0][2], matrix[1][2]
 	
-	
 	@staticmethod
 	def get_size(elm):
 		width, height = 1, 1
@@ -579,7 +540,6 @@ class SVGEditor(object):
 		if 'height' in elm.attrib:
 			height = float(elm.attrib['height'])
 		return width, height
-	
 	
 	@staticmethod
 	def parse_transform(xml):
@@ -632,7 +592,6 @@ class SVGEditor(object):
 		
 		return matrix
 	
-	
 	@staticmethod
 	def set_text(xml, text):
 		has_valid_children = False
@@ -642,7 +601,6 @@ class SVGEditor(object):
 				SVGEditor.set_text(child, text)
 		if not has_valid_children:
 			xml.text = text
-	
 	
 	def set_labels(self, labels):
 		"""
@@ -663,7 +621,6 @@ class SVGEditor(object):
 		walk(self._tree)
 		return self
 	
-	
 	@staticmethod
 	def add_element(parent, e, **attributes):
 		"""
@@ -677,7 +634,6 @@ class SVGEditor(object):
 			e = ET.Element(e, attributes)
 		parent.append(e)
 		return e
-	
 	
 	@staticmethod
 	def load_from_file(filename):

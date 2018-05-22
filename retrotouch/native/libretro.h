@@ -604,7 +604,7 @@ enum retro_mod
                                             * Afterward it may be called again for the core to communicate
                                             * updated options to the frontend, but the number of core
                                             * options must not change from the number in the initial call.
-					    *
+                                            *
                                             * 'data' points to an array of retro_variable structs
                                             * terminated by a { NULL, NULL } element.
                                             * retro_variable::key should be namespaced to not collide

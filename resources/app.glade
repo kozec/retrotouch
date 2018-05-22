@@ -32,15 +32,33 @@
       <column type="gchararray"/>
       <!-- column-name filename -->
       <column type="gchararray"/>
+      <!-- column-name rom_filename -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkListStore" id="lstSupported">
+    <columns>
+      <!-- column-name icon -->
+      <column type="GdkPixbuf"/>
+      <!-- column-name enabled -->
+      <column type="gboolean"/>
+      <!-- column-name format -->
+      <column type="gchararray"/>
+      <!-- column-name status -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkWindow" id="window">
     <property name="width_request">600</property>
-    <property name="height_request">300</property>
     <property name="can_focus">False</property>
+    <property name="events">GDK_POINTER_MOTION_MASK | GDK_STRUCTURE_MASK</property>
     <property name="window_position">center</property>
+    <property name="icon">retrotouch.svg</property>
     <property name="has_resize_grip">True</property>
     <signal name="delete-event" handler="on_window_delete_event" swapped="no"/>
+    <signal name="drag-data-received" handler="on_drag_data_received" swapped="no"/>
+    <signal name="drag-leave" handler="on_drag_leave" swapped="no"/>
+    <signal name="drag-motion" handler="on_drag_motion" swapped="no"/>
     <signal name="key-press-event" handler="on_window_key_press_event" swapped="no"/>
     <signal name="key-release-event" handler="on_window_key_release_event" swapped="no"/>
     <child>
@@ -50,13 +68,385 @@
         <property name="hexpand">True</property>
         <property name="vexpand">True</property>
         <child>
-          <object class="GtkAspectFrame">
+          <object class="GtkStack" id="stMain">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="hexpand">True</property>
-            <property name="vexpand">True</property>
-            <property name="label_xalign">0</property>
-            <property name="shadow_type">none</property>
+            <property name="transition_duration">1</property>
+            <child>
+              <object class="GtkGrid" id="grNotGame">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkAspectFrame" id="asUpLeft">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="vexpand">True</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">none</property>
+                    <property name="xalign">0</property>
+                    <property name="yalign">0</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkAspectFrame" id="asDownLeft">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="vexpand">True</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">none</property>
+                    <property name="xalign">0</property>
+                    <property name="yalign">1</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">0</property>
+                    <property name="top_attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkAspectFrame" id="asUpRight">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="vexpand">True</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">none</property>
+                    <property name="xalign">1</property>
+                    <property name="yalign">0</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="top_attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkAspectFrame" id="asDownRight">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="vexpand">True</property>
+                    <property name="label_xalign">0</property>
+                    <property name="shadow_type">none</property>
+                    <property name="xalign">1</property>
+                    <property name="yalign">1</property>
+                    <child>
+                      <placeholder/>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">2</property>
+                    <property name="top_attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkStack" id="stNotGame">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkGrid" id="grIntroScreen">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="margin_top">20</property>
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">Supported formats:</property>
+                            <property name="use_markup">True</property>
+                            <property name="track_visited_links">False</property>
+                            <property name="xalign">0</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">3</property>
+                            <property name="width">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="lblContinue">
+                            <property name="can_focus">False</property>
+                            <property name="no_show_all">True</property>
+                            <property name="label" translatable="yes">Continue playing:</property>
+                            <property name="use_markup">True</property>
+                            <property name="track_visited_links">False</property>
+                            <property name="xalign">0</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">1</property>
+                            <property name="width">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkRevealer" id="rvLoadGame">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="reveal_child">True</property>
+                            <child>
+                              <object class="GtkIconView" id="ivLoadGame">
+                                <property name="name">no-background</property>
+                                <property name="height_request">20</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="halign">center</property>
+                                <property name="margin">6</property>
+                                <property name="model">lstLoadGame</property>
+                                <property name="row_spacing">0</property>
+                                <property name="column_spacing">0</property>
+                                <property name="item_padding">4</property>
+                                <property name="activate_on_single_click">True</property>
+                                <signal name="item-activated" handler="ivLoadGame_item_activated_cb" swapped="no"/>
+                                <signal name="motion-notify-event" handler="on_ivLoadGame_motion_notify_event" swapped="no"/>
+                                <child>
+                                  <object class="GtkCellRendererPixbuf"/>
+                                  <attributes>
+                                    <attribute name="pixbuf">0</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">2</property>
+                            <property name="width">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkRevealer" id="rvFormats">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="margin_top">5</property>
+                            <property name="reveal_child">True</property>
+                            <child>
+                              <object class="GtkTreeView" id="tvFormats">
+                                <property name="name">no-background</property>
+                                <property name="width_request">400</property>
+                                <property name="height_request">50</property>
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="model">lstSupported</property>
+                                <property name="headers_visible">False</property>
+                                <property name="enable_search">False</property>
+                                <property name="search_column">1</property>
+                                <property name="show_expanders">False</property>
+                                <child internal-child="selection">
+                                  <object class="GtkTreeSelection">
+                                    <property name="mode">none</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="GtkTreeViewColumn">
+                                    <property name="title" translatable="yes">column</property>
+                                    <child>
+                                      <object class="GtkCellRendererPixbuf"/>
+                                      <attributes>
+                                        <attribute name="sensitive">1</attribute>
+                                        <attribute name="pixbuf">0</attribute>
+                                      </attributes>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCellRendererText">
+                                        <property name="xpad">5</property>
+                                      </object>
+                                      <attributes>
+                                        <attribute name="sensitive">1</attribute>
+                                        <attribute name="text">2</attribute>
+                                      </attributes>
+                                    </child>
+                                    <child>
+                                      <object class="GtkCellRendererText">
+                                        <property name="weight">300</property>
+                                      </object>
+                                      <attributes>
+                                        <attribute name="sensitive">1</attribute>
+                                        <attribute name="markup">3</attribute>
+                                      </attributes>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">4</property>
+                            <property name="width">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="halign">center</property>
+                            <property name="margin_bottom">5</property>
+                            <child>
+                              <object class="GtkImage" id="imgFolderIcon">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">end</property>
+                                <property name="pixel_size">48</property>
+                                <property name="icon_name">folder</property>
+                                <property name="icon_size">6</property>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="halign">start</property>
+                                <property name="hexpand">True</property>
+                                <property name="label" translatable="yes">Drop ROM file to start</property>
+                                <attributes>
+                                  <attribute name="weight" value="bold"/>
+                                  <attribute name="scale" value="1.2"/>
+                                </attributes>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">0</property>
+                            <property name="width">4</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="lblIntroStatus">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="valign">end</property>
+                            <property name="margin_bottom">5</property>
+                            <property name="vexpand">True</property>
+                            <property name="xalign">0</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">5</property>
+                            <property name="width">4</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="name">page0</property>
+                        <property name="title" translatable="yes">page0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkGrid" id="grCrash">
+                        <property name="name">BSOD</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="name">title</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="margin_top">40</property>
+                            <property name="margin_bottom">20</property>
+                            <property name="label" translatable="yes"> Core Crashed </property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="top_attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="lblCrash">
+                            <property name="width_request">200</property>
+                            <property name="can_focus">False</property>
+                            <property name="no_show_all">True</property>
+                            <property name="margin_left">20</property>
+                            <property name="margin_right">20</property>
+                            <property name="margin_bottom">20</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">True</property>
+                            <property name="label" translatable="yes">Unexpected error has occured.
+
+All progress since last save was lost.
+Sorry about that.
+
+To continue, load last save or different ROM.
+If problem persists, try starting RetroTouch from terminal and look at printed messages.</property>
+                            <property name="wrap">True</property>
+                            <property name="xalign">0</property>
+                            <property name="yalign">0</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">1</property>
+                            <property name="width">3</property>
+                            <property name="height">2</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">False</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">0</property>
+                            <property name="top_attach">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="hexpand">True</property>
+                            <property name="vexpand">False</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">2</property>
+                            <property name="top_attach">0</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="name">page1</property>
+                        <property name="title" translatable="yes">page1</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left_attach">1</property>
+                    <property name="top_attach">0</property>
+                    <property name="height">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="name">page3</property>
+                <property name="title" translatable="yes">page3</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
             <child>
               <object class="GtkEventBox" id="ebMain">
                 <property name="width_request">100</property>
@@ -66,85 +456,60 @@
                 <property name="can_focus">False</property>
                 <property name="can_default">True</property>
                 <property name="has_default">True</property>
-                <property name="events">GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
+                <property name="events">GDK_POINTER_MOTION_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK | GDK_STRUCTURE_MASK | GDK_TOUCH_MASK</property>
                 <property name="above_child">True</property>
+                <signal name="button-press-event" handler="on_ebMain_button_event" swapped="no"/>
+                <signal name="button-release-event" handler="on_ebMain_button_event" swapped="no"/>
                 <signal name="focus-out-event" handler="on_ebMain_focus_out_event" swapped="no"/>
+                <signal name="motion-notify-event" handler="on_ebMain_motion_notify_event" swapped="no"/>
                 <signal name="size-allocate" handler="on_ebMain_size_allocate" swapped="no"/>
+                <signal name="touch-event" handler="on_ebMain_touch_event" swapped="no"/>
                 <child>
                   <placeholder/>
                 </child>
               </object>
+              <packing>
+                <property name="name">page0</property>
+                <property name="title" translatable="yes">page0</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
-            <property name="left_attach">1</property>
-            <property name="top_attach">0</property>
+            <property name="left_attach">0</property>
+            <property name="top_attach">1</property>
+            <property name="height">2</property>
           </packing>
         </child>
         <child>
-          <object class="GtkRevealer" id="rvLeft">
-            <property name="width_request">150</property>
-            <property name="visible">True</property>
+          <object class="GtkRevealer" id="rvFullscreen">
             <property name="can_focus">False</property>
-            <property name="vexpand">True</property>
-            <property name="transition_type">slide-right</property>
+            <property name="no_show_all">True</property>
+            <property name="hexpand">True</property>
             <property name="reveal_child">True</property>
             <child>
-              <object class="GtkStack" id="stLeft">
+              <object class="GtkBox" id="vbFullscreen">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="transition_type">slide-right</property>
-                <property name="interpolate_size">True</property>
+                <property name="margin_left">5</property>
+                <property name="margin_right">5</property>
+                <property name="margin_top">2</property>
+                <property name="margin_bottom">2</property>
+                <property name="spacing">3</property>
                 <child>
-                  <object class="GtkAspectFrame" id="asLeft">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_left">20</property>
-                    <property name="margin_right">5</property>
-                    <property name="label_xalign">0</property>
-                    <property name="shadow_type">none</property>
-                    <child>
-                      <placeholder/>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="name">page0</property>
-                    <property name="title" translatable="yes">page0</property>
-                  </packing>
+                  <placeholder/>
+                </child>
+                <child type="center">
+                  <placeholder/>
                 </child>
               </object>
             </child>
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkRevealer" id="rvRight">
-            <property name="width_request">150</property>
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_left">5</property>
-            <property name="margin_right">20</property>
-            <property name="hexpand">False</property>
-            <property name="vexpand">True</property>
-            <property name="transition_type">slide-left</property>
-            <property name="reveal_child">True</property>
-            <child>
-              <object class="GtkAspectFrame" id="asRight">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label_xalign">0</property>
-                <property name="shadow_type">none</property>
-                <child>
-                  <placeholder/>
-                </child>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="left_attach">2</property>
             <property name="top_attach">0</property>
           </packing>
         </child>
@@ -158,6 +523,7 @@
         <child>
           <object class="GtkButton" id="btPlayPause">
             <property name="visible">True</property>
+            <property name="sensitive">False</property>
             <property name="can_focus">False</property>
             <property name="receives_default">True</property>
             <property name="tooltip_text" translatable="yes">Play / Pause</property>
@@ -175,6 +541,7 @@
         <child>
           <object class="GtkButton" id="btQuickSave">
             <property name="visible">True</property>
+            <property name="sensitive">False</property>
             <property name="can_focus">False</property>
             <property name="receives_default">True</property>
             <property name="tooltip_text" translatable="yes">Quick Save</property>
@@ -213,96 +580,23 @@
             <property name="position">2</property>
           </packing>
         </child>
-      </object>
-    </child>
-  </object>
-  <object class="GtkDialog" id="dlgLoadGame">
-    <property name="can_focus">False</property>
-    <property name="window_position">center-on-parent</property>
-    <property name="type_hint">dialog</property>
-    <property name="transient_for">window</property>
-    <property name="attached_to">hbWindow</property>
-    <signal name="delete-event" handler="on_close_dont_destroy" swapped="no"/>
-    <child internal-child="vbox">
-      <object class="GtkBox">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
         <child>
-          <object class="GtkScrolledWindow">
-            <property name="width_request">600</property>
+          <object class="GtkToggleButton" id="btFullscreen">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="hexpand">True</property>
-            <property name="vexpand">True</property>
-            <property name="vscrollbar_policy">never</property>
-            <property name="shadow_type">in</property>
+            <property name="receives_default">True</property>
+            <signal name="toggled" handler="on_btFullscreen_toggled" swapped="no"/>
             <child>
-              <object class="GtkViewport">
+              <object class="GtkImage" id="imgFullscreen">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <child>
-                  <object class="GtkIconView" id="ivLoadGame">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="margin">6</property>
-                    <property name="model">lstLoadGame</property>
-                    <child>
-                      <object class="GtkCellRendererPixbuf"/>
-                      <attributes>
-                        <attribute name="pixbuf">0</attribute>
-                      </attributes>
-                    </child>
-                  </object>
-                </child>
+                <property name="icon_name">view-fullscreen-symbolic</property>
               </object>
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <child type="titlebar">
-      <object class="GtkHeaderBar">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="title">Load Game</property>
-        <property name="show_close_button">True</property>
-        <property name="decoration_layout">:close</property>
-        <child>
-          <object class="GtkButton" id="btLoadGame">
-            <property name="label" translatable="yes">Load</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <signal name="clicked" handler="on_btLoadGame_clicked" swapped="no"/>
-            <style>
-              <class name="suggested-action"/>
-            </style>
-          </object>
-          <packing>
             <property name="pack_type">end</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>
@@ -327,6 +621,7 @@
         <child>
           <object class="GtkButton" id="btShowLoadScreen">
             <property name="visible">True</property>
+            <property name="sensitive">False</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <signal name="clicked" handler="on_btShowLoadScreen_clicked" swapped="no"/>
@@ -369,10 +664,12 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton">
+          <object class="GtkButton" id="btCloseGame">
             <property name="visible">True</property>
+            <property name="sensitive">False</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
+            <signal name="clicked" handler="on_btCloseGame_clicked" swapped="no"/>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
@@ -413,9 +710,9 @@
         </child>
         <child>
           <object class="GtkButton" id="btVideo">
-            <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
+            <property name="no_show_all">True</property>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
@@ -451,15 +748,16 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">1</property>
+            <property name="top_attach">2</property>
             <property name="width">2</property>
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="btControls">
+          <object class="GtkButton" id="btPadConfig">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
+            <signal name="clicked" handler="on_btPadConfig_clicked" swapped="no"/>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
@@ -495,7 +793,53 @@
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">2</property>
+            <property name="top_attach">3</property>
+            <property name="width">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkButton" id="btCoreConfig">
+            <property name="visible">True</property>
+            <property name="sensitive">False</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <signal name="clicked" handler="on_btCoreConfig_clicked" swapped="no"/>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkImage">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="icon_name">preferences-other</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="margin_left">5</property>
+                    <property name="margin_right">5</property>
+                    <property name="label" translatable="yes">Emulator Options</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">1</property>
             <property name="width">2</property>
           </packing>
         </child>
@@ -543,6 +887,7 @@
             <property name="margin_left">10</property>
             <property name="hexpand">True</property>
             <signal name="changed" handler="on_txSavedGame_changed" swapped="no"/>
+            <signal name="key-press-event" handler="on_txSavedGame_key_press_event" swapped="no"/>
           </object>
           <packing>
             <property name="left_attach">1</property>

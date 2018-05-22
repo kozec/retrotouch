@@ -18,7 +18,7 @@ if __name__ == "__main__":
 			license = 'GPL2',
 			platforms = ['Linux'],
 			ext_modules = [
-				Extension('libretro_runner',
+				Extension('libnative_runner',
 					sources = [
 						'retrotouch/native/retro_main.c',
 						'retrotouch/native/retro_audio.c',
@@ -26,7 +26,8 @@ if __name__ == "__main__":
 						'retrotouch/native/retro_internal.c',
 						'retrotouch/native/gltools.c',
 					],
-					libraries = [ 'GL', 'GLX', 'asound', 'png' ],
+					extra_compile_args = [ '-g', '-O0' ],
+					libraries = [ 'GL', 'GLX', 'asound', 'png', 'X11' ],
 					include_dirs = [
 						"retrotouch/native",
 						"/usr/include/",

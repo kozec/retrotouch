@@ -3,7 +3,7 @@
 #include <sys/shm.h>
 #include <string.h>
 #include <libretro.h>
-#include <retro.h>
+#include <retrotouch.h>
 
 #define LOG(...) rt_log(data, "RMain", __VA_ARGS__)
 
@@ -36,6 +36,7 @@ const char* rt_check_error(LibraryData* data) {
 int x_init(LibraryData* data) {
 	GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
 	XSetWindowAttributes wa;
+	XWindowAttributes pwa;
 	Colormap cmap;
 	
 	// Open X connection
@@ -44,6 +45,7 @@ int x_init(LibraryData* data) {
 		rt_set_error(data, "Failed to open display");
 		return 1;
 	}
+	
 	Window parent = DefaultRootWindow(dpy);
 	XVisualInfo* vi = glXChooseVisual(dpy, 0, att);
 	if (vi == NULL) {
@@ -51,11 +53,17 @@ int x_init(LibraryData* data) {
 		return 1;
 	}
 	cmap = XCreateColormap(dpy, parent, vi->visual, AllocNone);
+	if (data->parent != 0) {
+		XGetWindowAttributes(data->private->dpy, data->parent, &pwa);
+	} else {
+		pwa.width = pwa.height = 600;
+	}
 	wa.colormap = cmap;
 	wa.event_mask = ExposureMask | StructureNotifyMask;
-	data->window = XCreateWindow(dpy, parent, 0, 0, 600, 600, 0,
+	data->window = XCreateWindow(dpy, parent, 0, 0, pwa.width, pwa.height, 0,
 		vi->depth, InputOutput, vi->visual, CWColormap | CWEventMask, &wa);
-	XReparentWindow(dpy, data->window, data->parent, 0, 0);
+	if (data->parent != 0)
+		XReparentWindow(dpy, data->window, data->parent, 0, 0);
 	XMapWindow(dpy, data->window);
 	XStoreName(dpy, data->window, "RetroTouch");
 	
@@ -73,8 +81,9 @@ int rt_init(LibraryData* data) {
 		return 1; // OOM
 	
 	memset(data->private, 0, sizeof(PrivateData));
-	data->private->frame_width = 640;
-	data->private->frame_height = 480;
+	data->private->gl.screen_size[0] = data->private->window_width = data->private->internal_width = 640;
+	data->private->gl.screen_size[1] = data->private->window_height = data->private->internal_height = 480;
+	data->private->gl.colorspace = "COLORSPACE_RGB8888";
 	
 	if (0 != x_init(data)) return 1;
 	rt_make_current(data);
@@ -95,11 +104,11 @@ inline static void rt_step_xevent(LibraryData* data) {
 		if (xev.type == Expose) {
 			XWindowAttributes wa;
 			XGetWindowAttributes(data->private->dpy, data->window, &wa);
-			rt_set_draw_size(data, wa.width, wa.height);
+			rt_set_window_size(data, wa.width, wa.height);
 			rt_render(data);
 			glXSwapBuffers(data->private->dpy, data->window);
 		} else if (xev.type == ConfigureNotify) {
-			rt_set_draw_size(data, xev.xconfigure.width, xev.xconfigure.height);
+			rt_set_window_size(data, xev.xconfigure.width, xev.xconfigure.height);
 		}
 	}
 }
@@ -120,6 +129,7 @@ void rt_step(LibraryData* data) {
 	if (data->private->hw_render_state == HW_RENDER_NEEDS_RESET) {
 		data->private->hw_render_state = HW_RENDER_READY;
 		rt_core_context_reset(data);
+		rt_compile_shaders(data);
 		LOG(RETRO_LOG_DEBUG, "HW rendering set up.");
 	}
 	for(unsigned int i=0; i<data->private->gl.frame_skip; i++)

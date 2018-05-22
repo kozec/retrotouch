@@ -5,8 +5,9 @@ RetroTouch - tools
 Various stuff that I don't care to fit anywhere else.
 """
 from __future__ import unicode_literals
+from retrotouch.paths import get_config_path
 
-import logging
+import os, json, logging
 
 log = logging.getLogger("tools.py")
 _ = lambda x : x
@@ -54,3 +55,34 @@ def set_logging_level(verbose, debug):
 		logger.setLevel(11)
 	else:			# INFO and worse
 		logger.setLevel(20)
+
+
+def _config_file(core):
+	core_name = ".".join(os.path.split(core)[-1].split(".")[:-1])
+	return os.path.join(get_config_path(), "core_configs", core_name + ".json")
+
+
+def load_core_config(core):
+	""" Returns None on failure """
+	config_file = _config_file(core)
+	try:
+		return json.load(open(config_file, "r"))
+	except Exception, e:
+		log.warning("Failed to load core config")
+		log.error(e)
+		return {}
+
+
+def save_core_config(core, config):
+	""" Returns True on success """
+	config_file = _config_file(core)
+	try:
+		os.makedirs(os.path.split(config_file)[0])
+	except: pass
+	try:
+		json.dump(config, open(config_file, "w"), indent=4)
+		return True
+	except Exception, e:
+		log.warning("Failed to save core config")
+		log.error(e)
+		return False
