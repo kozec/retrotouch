@@ -5,11 +5,10 @@ out vec4 outputColor;
 
 void main() {
 #if defined(COLORSPACE_RGB565)
-	vec3 color = texture2D(texture, uv).rgb;
+	outputColor = vec4(texture2D(texture, uv).rgb, 1);
 #elif defined(HW_RENDERING)
-	vec3 color = texture2D(texture, uv).rgb;
+	outputColor = texture2D(texture, uv).rgba;
 #else
-	vec3 color = texture2D(texture, uv).bgr;
+	outputColor = vec4(texture2D(texture, uv).bgr, 1);
 #endif
-	outputColor = vec4(color, 1);
 }

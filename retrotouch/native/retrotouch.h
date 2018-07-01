@@ -66,6 +66,7 @@ typedef struct {
 		} prog_pads;
 		
 		GLuint texture;
+		GLuint depth;
 		GLuint fbo;
 		GLuint vao;
 		GLuint vbo;

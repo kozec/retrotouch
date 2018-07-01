@@ -163,6 +163,24 @@ void rt_setup_texture(LibraryData* data) {
 }
 
 
+void rt_setup_depth_buffer(LibraryData* data) {
+	if (data->private->gl.depth)
+		glDeleteTextures(1, &data->private->gl.depth);
+	glGenTextures(1, &(data->private->gl.depth));
+	glBindTexture(GL_TEXTURE_2D, data->private->gl.depth);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
+			data->private->internal_width,
+			data->private->internal_height,
+			0,
+			GL_DEPTH_COMPONENT,
+			GL_UNSIGNED_BYTE,
+			0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+
 useconds_t rt_get_time() {
 	static struct timeval t;
 	gettimeofday(&t, NULL);
@@ -312,6 +330,12 @@ static void setup_framebuffer(LibraryData* data) {
 	rt_setup_texture(data);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
 			GL_TEXTURE_2D, data->private->gl.texture, 0);
+	
+	
+	// TODO: Do this only if requested
+	rt_setup_depth_buffer(data);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+			GL_TEXTURE_2D, data->private->gl.depth, 0);
 	
 	GLenum state = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (state != GL_FRAMEBUFFER_COMPLETE) {

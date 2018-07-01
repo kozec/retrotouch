@@ -15,6 +15,7 @@ SUPPORTED_CORES = OrderedDict((
 	('SNES',		('snes9x',)),
 	('GB',			('gambatte',)),
 	('NDS',			('desmume',)),
+	('N64',			("mupen64plus", "parallel_n64")),
 	('Megadrive',	('picodrive', 'blastem',)),
 	('Sega32x',		('picodrive',)),
 ))

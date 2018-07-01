@@ -28,6 +28,14 @@ class OSP(SVGWidget):
 		"DPAD_DOWN":	5,
 		"DPAD_LEFT":	6,
 		"DPAD_RIGHT":	7,
+		'L2':			12,
+		'R2':			13,
+		'L3':			14,
+		'R3':			15,
+		"A2":			8,
+		"B2":			0,
+		"X2":			9,
+		"Y2":			1,
 	}
 	
 	def __init__(self, app, index, image):
@@ -117,7 +125,6 @@ class OSP(SVGWidget):
 							self.app.wrapper.set_button(OSP.TOUCH_MAPPINGS[a], False)
 				del self.hilights[-1]
 				self.update_hilights(widget)
-	
 	
 	def on_size_allocate(self, widget, allocation=None):
 		if self.app.wrapper:

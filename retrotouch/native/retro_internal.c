@@ -47,7 +47,10 @@ static uintptr_t video_driver_get_current_framebuffer() {
 
 
 static retro_proc_address_t video_driver_get_proc_address(const char *sym) {
-	return glXGetProcAddress((const GLubyte*)sym);
+	retro_proc_address_t adr = glXGetProcAddress((const GLubyte*)sym);
+	if (adr == NULL)
+		LOG(RETRO_LOG_WARN, "GetProcAddress failed for %s", sym);
+	return adr;
 }
 
 
@@ -186,7 +189,7 @@ static bool core_environment(unsigned cmd, void* data) {
 			return false;
 		}
 		cb->get_current_framebuffer = video_driver_get_current_framebuffer;
-		cb->get_proc_address        = NULL; // video_driver_get_proc_address;
+		cb->get_proc_address        = video_driver_get_proc_address;
 		memcpy(&current->core->hw_render_callback, cb, sizeof(struct retro_hw_render_callback));
 		return 0 == rt_hw_render_setup(current);
 	
@@ -271,9 +274,9 @@ void rt_core_step(LibraryData* data) {
 	if (data->private->gl.fbo == 0) {
 		current->core->retro_run();
 	} else {
-		//glBindFramebuffer(GL_FRAMEBUFFER, data->private->gl.fbo);
+		// glBindFramebuffer(GL_FRAMEBUFFER, data->private->gl.fbo);
 		current->core->retro_run();
-		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		// glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 }
 

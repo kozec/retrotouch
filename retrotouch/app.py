@@ -150,6 +150,7 @@ class App(Gtk.Application):
 		
 		def analyze_file(stream, task):
 			a = stream.read_bytes_finish(task).get_data()
+			print (a[0:5], )
 			if a[0:4] == b"\x4e\x45\x53\x1A":
 				log.debug("Loading NES game")
 				self.load_game("NES", game_filename)
@@ -162,9 +163,11 @@ class App(Gtk.Application):
 				log.debug("Loading Sega Megadrive game")
 				GLib.timeout_add(100, self.load_game, "Megadrive", game_filename)
 			elif a[0x100:0x108] == b"SEGA 32X":
-				# TODO: 32x
-				log.debug("Loading Sega Megadrive game")
+				log.debug("Loading Sega 32x game")
 				GLib.timeout_add(100, self.load_game, "Sega32x", game_filename)
+			elif a[0x0:0x5] in (b"\x807\x12@\x00", b"7\x80@\x12\x00"):
+				log.debug("Loading N64 game")
+				GLib.timeout_add(100, self.load_game, "N64", game_filename)
 			elif a[0xC0:0xc9] == b"\x24\xff\xae\x51\x69\x9a\xa2\x21\x3d":
 				# This matches logo in ROM header.
 				# Matching by extension is better in NDS case, as logo
@@ -208,6 +211,9 @@ class App(Gtk.Application):
 		elif game_filename.lower().split(".")[-1] in ("gb", "sgb", "gbc", "cgb"):
 			log.debug("Loading Gameboy game")
 			GLib.timeout_add(100, self.load_game, "GB", game_filename)
+		elif game_filename.lower().split(".")[-1] in ("z64", "n64", "v64"):
+			log.debug("Loading N64 game")
+			GLib.timeout_add(100, self.load_game, "N64", game_filename)
 		elif game_filename.lower().split(".")[-1] in ("nds",):
 			log.debug("Loading NDS game")
 			GLib.timeout_add(100, self.load_game, "NDS", game_filename)
