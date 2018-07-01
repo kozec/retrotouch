@@ -467,8 +467,12 @@ int rt_save_screenshot(LibraryData* data, const char* filename) {
 		rt_make_current(data);
 		glReadPixels(0, 0, data->private->internal_width,
 			data->private->internal_height, GL_RGB, GL_UNSIGNED_BYTE, frame_source);
+		if (glGetError() != GL_NO_ERROR) {
+			LOG(RETRO_LOG_ERROR, "Failed to save screenshot: glReadPixels failed");
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			return 8;
+		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		
 		
 		rows = (png_bytep*) malloc(sizeof(png_bytep) * data->private->internal_height);
 		if (rows == NULL) {

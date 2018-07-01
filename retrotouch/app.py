@@ -230,6 +230,8 @@ class App(Gtk.Application):
 		for item in self.config['last_saves']:
 			filepath = item["state"]
 			gamepath = item["game"]
+			if not os.path.exists(filepath) or not os.path.exists(gamepath):
+				continue
 			pb = get_savegame_icon(filepath, at_size=64, max_height=48, tint=True)
 			lstLoadGame.append(( pb, "xxx", filepath, gamepath) )
 			if first:
@@ -329,6 +331,7 @@ class App(Gtk.Application):
 		self.builder.get_object("btFullscreen").set_active(False)
 		for w in self.WIDGETS_ACTIVE_WHILE_LOADED:
 			self.builder.get_object(w).set_sensitive(False)
+		self.load_recent_games()
 	
 	def on_core_crashed(self):
 		stMain = self.builder.get_object("stMain")
@@ -461,7 +464,18 @@ class App(Gtk.Application):
 		imgSavedGame.set_from_pixbuf(pb)
 		ppSaved = self.builder.get_object("ppSaved")
 		ppSaved.popup()
+		self.config["last_saves"] = [{
+			"game": self.wrapper.game,
+			"state": filename,
+		}] + [
+			x for x in self.config["last_saves"]
+			if x["game"] != self.wrapper.game
+		]
+		if len(self.config["last_saves"]) > 5:
+			self.config["last_saves"] = self.config["last_saves"][0:5]
+		self.config.save()
 		txSavedGame.grab_focus()
+		
 	
 	def on_txSavedGame_changed(self, txSavedGame):
 		try:
