@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Generated with glade 3.20.4 -->
 <interface>
-  <requires lib="gtk+" version="3.20"/>
+  <requires lib="gtk+" version="3.18"/>
   <object class="GtkListStore" id="lstFilter">
     <columns>
       <!-- column-name key -->
@@ -445,9 +445,6 @@ If problem persists, try starting RetroTouch from terminal and look at printed m
               </packing>
             </child>
             <child>
-              <placeholder/>
-            </child>
-            <child>
               <object class="GtkEventBox" id="ebMain">
                 <property name="width_request">100</property>
                 <property name="height_request">80</property>
@@ -471,11 +468,8 @@ If problem persists, try starting RetroTouch from terminal and look at printed m
               <packing>
                 <property name="name">page0</property>
                 <property name="title" translatable="yes">page0</property>
-                <property name="position">2</property>
+                <property name="position">1</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>
@@ -605,7 +599,6 @@ If problem persists, try starting RetroTouch from terminal and look at printed m
   <object class="GtkPopover" id="ppMenu">
     <property name="can_focus">False</property>
     <property name="relative_to">btSettings</property>
-    <property name="constrain_to">none</property>
     <child>
       <object class="GtkGrid">
         <property name="visible">True</property>
@@ -853,7 +846,6 @@ If problem persists, try starting RetroTouch from terminal and look at printed m
     <property name="margin_top">5</property>
     <property name="margin_bottom">5</property>
     <property name="relative_to">btQuickSave</property>
-    <property name="constrain_to">none</property>
     <child>
       <object class="GtkGrid">
         <property name="visible">True</property>

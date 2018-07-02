@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=RetroTouch
+GenericName=RetroTouch
+Comment=Touch-screen enabled games and emulators
+Exec=retrotouch
+Type=Application
+Icon=retrotouch
+Categories=Game;

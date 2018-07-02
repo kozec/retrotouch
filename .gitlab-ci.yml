@@ -1,0 +1,23 @@
+image: base/archlinux:latest
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+    - /var/cache/pacman/
+    - /tmp/appimagebuild-cache/
+
+before_script:
+  - pacman -Sy --noconfirm wget unzip gcc patch alsa-lib libglvnd libpng python2 fuse2
+  - wget --no-verbose -c 'https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage'
+  - chmod +x appimagetool-x86_64.AppImage
+
+run:
+  script:
+  - python2 setup.py build
+  - bash appimage-build.sh
+  - ARCH=x86_64 ./appimagetool-x86_64.AppImage -n "$CI_PROJECT_DIR/appimage" "RetroTouch-$CI_COMMIT_SHA.x86_64.AppImage"
+  artifacts:
+    paths:
+    - RetroTouch-$CI_COMMIT_SHA.x86_64.AppImage
