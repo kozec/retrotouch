@@ -314,7 +314,9 @@ class App(Gtk.Application):
 	def on_core_ready(self):
 		stMain = self.builder.get_object("stMain")
 		ebMain = self.builder.get_object("ebMain")
+		rvFormats = self.builder.get_object("rvFormats")
 		
+		rvFormats.set_visible(False)
 		stMain.set_visible_child(ebMain)
 		self.set_intro_status("", False)
 		for w in self.WIDGETS_ACTIVE_WHILE_LOADED:
@@ -331,8 +333,11 @@ class App(Gtk.Application):
 		grNotGame = self.builder.get_object("grNotGame")
 		stNotGame = self.builder.get_object("stNotGame")
 		grIntroScreen = self.builder.get_object("grIntroScreen")
+		rvFormats = self.builder.get_object("rvFormats")
+		
 		stMain.set_visible_child(grNotGame)
 		stNotGame.set_visible_child(grIntroScreen)
+		rvFormats.set_visible(True)
 		self.wrapper = None
 		self.set_intro_status(_("Game finished"), True)
 		self.builder.get_object("btFullscreen").set_active(False)
