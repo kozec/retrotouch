@@ -60,5 +60,5 @@ def get_core_paths():
 		for path in os.environ["CORE_SEARCH_PATH"].split(":"):
 			yield path
 	yield os.path.join(get_data_path(), "cores")
-	yield "/usr/lib"
-	yield "/usr/lib/x86_64-linux-gnu"	# Ubuntu
+	yield "/usr/lib/libretro"
+	yield "/usr/lib/x86_64-linux-gnu/libretro"	# Ubuntu
