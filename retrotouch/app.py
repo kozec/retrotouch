@@ -27,6 +27,7 @@ class App(Gtk.Application):
 	
 	GLADE_FILE = "app.glade"
 	CORE_ICON_SIZE = 24
+	APP_ICON_SIZE = 128
 	WIDGETS_ACTIVE_WHILE_LOADED = ( "btShowLoadScreen", "btCloseGame",
 			"btQuickSave", "btPlayPause", "btCoreConfig" )
 	HEADER_BUTTONS_START = ( "btPlayPause", "btQuickSave" )
@@ -98,13 +99,11 @@ class App(Gtk.Application):
 		lstSupported = self.builder.get_object("lstSupported")
 		keys = list(SUPPORTED_CORES.keys())
 		for key in keys:
+			filename = os.path.join(self.respath,
+					"core_icons", key.lower() + ".svg")
 			p = GdkPixbuf.Pixbuf.new_from_file_at_size(
-					os.path.join(
-						self.respath,
-						"core_icons",
-						key.lower() + ".svg"),
-					self.CORE_ICON_SIZE, self.CORE_ICON_SIZE)
-			self.core_icons[key] = p
+					filename, self.CORE_ICON_SIZE, self.CORE_ICON_SIZE)
+			self.core_icons[key] = filename
 			lstSupported.append((p, False, key, _('<i>Checking...</i>')))
 		
 		def check_next(keys):
@@ -251,6 +250,7 @@ class App(Gtk.Application):
 	def load_game(self, rom_type, game_path):
 		if self.wrapper:
 			self.wrapper.destroy()
+		self.window.set_title(_("RetroTouch - %s") % (rom_type, ))
 		try:
 			core_filename = self.core_filenames[rom_type]
 			self.set_icon(rom_type)
@@ -301,7 +301,9 @@ class App(Gtk.Application):
 	
 	def set_icon(self, rom_type):
 		if rom_type in self.core_icons:
-			self.window.set_icon(self.core_icons[rom_type])
+			self.window.set_icon(GdkPixbuf.Pixbuf.new_from_file_at_size(
+				self.core_icons[rom_type],
+				self.APP_ICON_SIZE, self.APP_ICON_SIZE))
 	
 	def select_pads(self, type, name):
 		self.pads[0].set_image(os.path.join(self.respath, "pads/%s/up-left.svg" % (type,)))
