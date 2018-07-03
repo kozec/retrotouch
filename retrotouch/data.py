@@ -13,7 +13,8 @@ from retrotouch.tools import _
 SUPPORTED_CORES = OrderedDict((
 	('NES',			('nestopia',)),
 	('SNES',		('snes9x',)),
-	('GB',			('gambatte',)),
+	('GB',			('gambatte', 'mgba')),
+	('GBA',			('mgba',)),
 	('NDS',			('desmume',)),
 	('N64',			("mupen64plus", "parallel_n64")),
 	('Megadrive',	('picodrive', 'blastem',)),

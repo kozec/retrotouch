@@ -3,7 +3,7 @@ APP="retrotouch"
 EXEC="retrotouch"
 [ x"$BUILD_APPDIR" == "x" ] && BUILD_APPDIR=$(pwd)/appimage
 
-CORES=(nestopia snes9x gambatte desmume mupen64plus picodrive)
+CORES=(nestopia snes9x mgba desmume mupen64plus picodrive)
 CORE_DOWNLOAD_URL="http://buildbot.libretro.com/nightly/linux/x86_64/latest"
 
 function download_dep() {

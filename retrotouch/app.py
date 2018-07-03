@@ -151,7 +151,7 @@ class App(Gtk.Application):
 			a = stream.read_bytes_finish(task).get_data()
 			if a[0:4] == b"\x4e\x45\x53\x1A":
 				log.debug("Loading NES game")
-				self.load_game("NES", game_filename)
+				GLib.timeout_add(100, self.load_game, "NES", game_filename)
 			elif a[0x100:0x102] == b"\x00\xc3":
 				log.debug("Loading Gameboy game")
 				GLib.timeout_add(100, self.load_game, "GB", game_filename)
@@ -216,6 +216,9 @@ class App(Gtk.Application):
 		elif game_filename.lower().split(".")[-1] in ("z64", "n64", "v64"):
 			log.debug("Loading N64 game")
 			GLib.timeout_add(100, self.load_game, "N64", game_filename)
+		elif game_filename.lower().split(".")[-1] in ("gba",):
+			log.debug("Loading GBA game")
+			GLib.timeout_add(100, self.load_game, "GBA", game_filename)
 		elif game_filename.lower().split(".")[-1] in ("nds",):
 			log.debug("Loading NDS game")
 			GLib.timeout_add(100, self.load_game, "NDS", game_filename)
