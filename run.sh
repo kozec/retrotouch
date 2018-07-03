@@ -8,6 +8,7 @@ SCRIPTS="$(pwd)/scripts"
 export PATH="$SCRIPTS":"$PATH"
 export PYTHONPATH=".":"$PYTHONPATH"
 export SHARED="$(pwd)/resources"
+export CORE_SEARCH_PATH="$(pwd)/cores"
 
 # Build libs
 python2 setup.py build || exit 1

@@ -10,7 +10,7 @@ python can't handle.
 All this is needed since I want to have entire thing installable, runnable
 from source tarball *and* debugable in working folder.
 """
-import os
+import os, platform
 
 
 def get_share_path():
@@ -47,3 +47,18 @@ def get_data_path():
 	if "XDG_DATA_HOME" in os.environ:
 		confdir = os.environ['XDG_DATA_HOME']
 	return os.path.join(confdir, "retrotouch")
+
+
+def get_core_paths():
+	"""
+	Returns iterable of paths where libretro core may be located.
+	This will typicaly include /usr/lib/libretro and ~/.local/share/libretro.
+	
+	Can be modified using CORE_SEARCH_PATH environment variable.
+	"""
+	if "CORE_SEARCH_PATH" in os.environ:
+		for path in os.environ["CORE_SEARCH_PATH"].split(":"):
+			yield path
+	yield os.path.join(get_data_path(), "cores")
+	yield "/usr/lib"
+	yield "/usr/lib/x86_64-linux-gnu"	# Ubuntu

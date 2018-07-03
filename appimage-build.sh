@@ -3,6 +3,9 @@ APP="retrotouch"
 EXEC="retrotouch"
 [ x"$BUILD_APPDIR" == "x" ] && BUILD_APPDIR=$(pwd)/appimage
 
+CORES=(nestopia snes9x gambatte desmume mupen64plus picodrive)
+CORE_DOWNLOAD_URL="http://buildbot.libretro.com/nightly/linux/x86_64/latest"
+
 function download_dep() {
 	NAME=$1
 	URL=$2
@@ -23,6 +26,19 @@ function unpack_dep() {
 	tar --extract --exclude="usr/include**" --exclude="usr/lib/pkgconfig**" \
 			--exclude="usr/lib/python3.6**" -f data.tar.*
 	rm data.tar.*
+	popd
+}
+
+function download_core() {
+	FILENAME="$1_libretro.so.zip"
+	URL="${CORE_DOWNLOAD_URL}/${FILENAME}"
+	wget --no-verbose -c "${URL}" -O "/tmp/appimagebuild-cache/${FILENAME}"
+}
+
+function unpack_core() {
+	FILENAME="$1_libretro.so.zip"
+	pushd "${BUILD_APPDIR}/usr/lib/x86_64-linux-gnu/libretro"
+	unzip -o "/tmp/appimagebuild-cache/$FILENAME"
 	popd
 }
 
@@ -60,6 +76,10 @@ download_dep "libselinux-2.7" "http://cz.archive.ubuntu.com/ubuntu/pool/main/lib
 download_dep "zlib-1.2.11" "http://cz.archive.ubuntu.com/ubuntu/pool/main/z/zlib/zlib1g_1.2.11.dfsg-0ubuntu2_amd64.deb"
 download_dep "icu-60.2" "http://cz.archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3_amd64.deb"
 
+for core in "${CORES[@]}" ; do
+	download_core "$core"
+done
+
 # Prepare & build
 mkdir -p ${BUILD_APPDIR}/usr/lib/python2.7/site-packages/
 unpack_dep "gtk-3.22.30"
@@ -91,6 +111,13 @@ unpack_dep "libpcre-8.39"
 unpack_dep "libselinux-2.7"
 unpack_dep "zlib-1.2.11"
 unpack_dep "icu-60.2"
+
+# Unpack cores
+mkdir -p "${BUILD_APPDIR}/usr/lib/x86_64-linux-gnu/libretro"
+[ -h "${BUILD_APPDIR}/cores" ] || ln -s "usr/lib/x86_64-linux-gnu/libretro" "${BUILD_APPDIR}/cores"
+for core in "${CORES[@]}" ; do
+	unpack_core "$core"
+done
 
 # Cleanup
 mv "${BUILD_APPDIR}/lib/x86_64-linux-gnu/"* "${BUILD_APPDIR}/usr/lib/x86_64-linux-gnu"

@@ -12,7 +12,7 @@ from retrotouch.native.wrapper import Wrapper
 from retrotouch.config import Config
 from retrotouch.data import DEFAULT_MAPPINGS, SUPPORTED_CORES, ALL_CORES
 from retrotouch.data import CSS, UNKNOWN_FORMAT_ERROR
-from retrotouch.paths import get_data_path
+from retrotouch.paths import get_data_path, get_core_paths
 from retrotouch.osp import OSP
 from retrotouch.tools import _
 
@@ -110,27 +110,26 @@ class App(Gtk.Application):
 		def check_next(keys):
 			if len(keys):
 				key, keys = keys[0], keys[1:]
-				# TODO: more search options
+				lst = list(SUPPORTED_CORES.keys())
 				for core in ALL_CORES[key]:
 					filename = "%s_libretro.so" % (core, )
-					# TODO: Somehow get abs.path to ./cores
-					for path in ("/usr/lib/libretro", "./cores"):
+					found = False
+					try:
+						index = lst.index(key)
+					except ValueError:
+						# 'experimental' core
+						index = -1
+					for path in get_core_paths():
 						path = os.path.join(path, filename)
-						lst = list(SUPPORTED_CORES.keys())
-						try:
-							index = lst.index(key)
-							if os.path.exists(path):
-								self.core_filenames[key] = path
+						if os.path.exists(path):
+							self.core_filenames[key] = path
+							if index >= 0:
 								lstSupported[index][3] = _("(%s)") % (core, )
 								lstSupported[index][1] = True
-								break
-							else:
-								lstSupported[index][3] = _("<i>libretro-%s not installed</i>") % (core, )
-								lstSupported[index][1] = False
-						except ValueError:
-							# 'experimental' core
-							if os.path.exists(path):
-								self.core_filenames[key] = path
+							found = True
+					if index >= 0 and not found and not lstSupported[index][1]:
+						lstSupported[index][3] = _("<i>libretro-%s not installed</i>") % (core, )
+						lstSupported[index][1] = False
 				
 				GLib.idle_add(check_next, keys)
 			elif self.rom_to_load:
