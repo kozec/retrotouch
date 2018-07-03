@@ -62,3 +62,7 @@ def get_core_paths():
 	yield os.path.join(get_data_path(), "cores")
 	yield "/usr/lib/libretro"
 	yield "/usr/lib/x86_64-linux-gnu/libretro"	# Ubuntu
+	confdir = os.path.expanduser("~/.config")
+	if "XDG_CONFIG_HOME" in os.environ:
+		confdir = os.environ['XDG_CONFIG_HOME']
+	yield os.path.join(confdir, "retroarch", "cores")

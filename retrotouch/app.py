@@ -149,7 +149,6 @@ class App(Gtk.Application):
 		
 		def analyze_file(stream, task):
 			a = stream.read_bytes_finish(task).get_data()
-			print (a[0:5], )
 			if a[0:4] == b"\x4e\x45\x53\x1A":
 				log.debug("Loading NES game")
 				self.load_game("NES", game_filename)
@@ -173,6 +172,10 @@ class App(Gtk.Application):
 				# may be changed
 				log.debug("Loading NDS game")
 				self.load_game("NDS", game_filename)
+			#elif a[0:4] == b"DOS\x00":
+			#	Nothing can emulate this yet :(
+			#	log.debug("Loading Amiga 500 game")
+			#	self.load_game("Amiga500", game_filename)
 			else:
 				log.debug("Unknown file type")
 				self.set_intro_status(random.choice(UNKNOWN_FORMAT_ERROR), True)
