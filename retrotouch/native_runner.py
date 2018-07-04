@@ -182,6 +182,12 @@ class RetroRunner(Native, RPC):
 			else:
 				self.config[key] = value
 	
+	def initialize(self):
+		""" Calls step_paused few times allowing core to initialize """
+		for x in xrange(5):
+			self.select(0.01)
+			self.step()
+	
 	def run(self):
 		while True:
 			if self.paused:
@@ -222,6 +228,8 @@ if __name__ == "__main__":
 	n.set_background_color(float(r), float(g), float(b))
 	n.set_paused(False)
 	save_core_config(core, n.config)
+	
+	n.initialize()
 	if n.check_saving_supported():
 		n.call("saving_supported")
 	

@@ -30,6 +30,7 @@ typedef struct {
 	unsigned int window_width;
 	unsigned int window_height;
 	enum HwRenderState hw_render_state;
+	uint64_t serialization_quirks;
 	Display* dpy;
 	
 	struct {

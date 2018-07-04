@@ -84,6 +84,8 @@ int rt_init(LibraryData* data) {
 	data->private->gl.screen_size[0] = data->private->window_width = data->private->internal_width = 640;
 	data->private->gl.screen_size[1] = data->private->window_height = data->private->internal_height = 480;
 	data->private->gl.colorspace = "COLORSPACE_RGB8888";
+	// TODO: Support RETRO_SERIALIZATION_QUIRK_FRONT_VARIABLE_SIZE
+	data->private->serialization_quirks = 0;
 	
 	if (0 != x_init(data)) return 1;
 	rt_make_current(data);

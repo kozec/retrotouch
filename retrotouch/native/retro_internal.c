@@ -155,6 +155,14 @@ static bool core_environment(unsigned cmd, void* data) {
 		return true;
 	}
 	
+	case RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS: {
+		uint64_t* quirks = (uint64_t*)data;
+		*quirks = *quirks & ( RETRO_SERIALIZATION_QUIRK_MUST_INITIALIZE
+							| RETRO_SERIALIZATION_QUIRK_SINGLE_SESSION);
+		current->private->serialization_quirks = *quirks;
+		return true;
+	}
+	
 	case RETRO_ENVIRONMENT_GET_USERNAME:
 		*(const char **)data = "RetroTouch";
 		return true;
@@ -397,6 +405,12 @@ int rt_game_load(LibraryData* data, const char* filename) {
 
 
 int rt_check_saving_supported(LibraryData* data) {
+	uint64_t q = data->private->serialization_quirks;
+	if ((q & RETRO_SERIALIZATION_QUIRK_SINGLE_SESSION) != 0)
+		// useless
+		return 0;
+	if (data->private->serialization_quirks != 0)
+		return 1;
 	size_t size = data->core->retro_serialize_size();
 	return (size > 0) ? 1 : 0;
 }
