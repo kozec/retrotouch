@@ -43,16 +43,16 @@ def get_data_path():
 	RetroTouch stores game saves there.
 	~/.local/share/retrotouch under normal conditions.
 	"""
-	confdir = os.path.expanduser("~/.local/share")
+	data_dir = os.path.expanduser("~/.local/share")
 	if "XDG_DATA_HOME" in os.environ:
-		confdir = os.environ['XDG_DATA_HOME']
-	return os.path.join(confdir, "retrotouch")
+		data_dir = os.environ['XDG_DATA_HOME']
+	return os.path.join(data_dir, "retrotouch")
 
 
 def get_core_paths():
 	"""
 	Returns iterable of paths where libretro core may be located.
-	This will typicaly include /usr/lib/libretro and ~/.local/share/libretro.
+	This will typicaly include /usr/lib/libretro and ~/.local/share/libretro/cores.
 	
 	Can be modified using CORE_SEARCH_PATH environment variable.
 	"""
@@ -62,7 +62,7 @@ def get_core_paths():
 	yield os.path.join(get_data_path(), "cores")
 	yield "/usr/lib/libretro"
 	yield "/usr/lib/x86_64-linux-gnu/libretro"	# Ubuntu
-	confdir = os.path.expanduser("~/.config")
+	data_dir = os.path.expanduser("~/.config")
 	if "XDG_CONFIG_HOME" in os.environ:
-		confdir = os.environ['XDG_CONFIG_HOME']
-	yield os.path.join(confdir, "retroarch", "cores")
+		data_dir = os.environ['XDG_CONFIG_HOME']
+	yield os.path.join(data_dir, "retroarch", "cores")

@@ -41,13 +41,20 @@ class Wrapper(RPC):
 		color = self.app.window.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
 		RPC.__init__(self, mine_rfd, mine_wfd)
 		
+		# Setup environment
+		env = dict(**os.environ)
+		env['RT_RUNNER_READ_FD'] = str(his_rfd)
+		env['RT_RUNNER_WRITE_FD'] = str(his_wfd)
+		env['RT_RUNNER_WINDOW_ID'] = str(self.parent.get_window().get_xid())
+		env['RT_BACKGROUND_COLOR'] = "%s %s %s" % (color.red, color.green, color.blue)
+		env['RT_RUNNER_SHM_FILENAME'] = self.shared_data.get_filename()
 		# Start native_runner
 		if self.GDB:
-			self.proc = subprocess.Popen([ "gdb", "python" ], stdin=subprocess.PIPE)
-			print >>self.proc.stdin, " ".join([ "run", "retrotouch/native_runner.py",
-				str(his_rfd), str(his_wfd), str(self.parent.get_window().get_xid()),
-				str(color.red), str(color.green), str(color.blue),
-				self.shared_data.get_filename(), "'%s'" % (self.core,) , "'%s'" % (self.game,),
+			self.proc = subprocess.Popen([ "gdb", "python" ],
+				env=env, stdin=subprocess.PIPE)
+			print >>self.proc.stdin, " ".join([
+				"run", "retrotouch/native_runner.py",
+				"'%s'" % (self.core,) , "'%s'" % (self.game,),
 			])
 			print >>self.proc.stdin, "bt"
 		elif self.VALGRIND:
@@ -56,16 +63,12 @@ class Wrapper(RPC):
 				"--suppressions=resources/valgrind-python.supp",
 				"--tool=memcheck",
 				"python", "retrotouch/native_runner.py",
-				str(his_rfd), str(his_wfd), str(self.parent.get_window().get_xid()),
-				str(color.red), str(color.green), str(color.blue),
-				self.shared_data.get_filename(), self.core, self.game,
-			]) 
+				self.core, self.game,
+			], env=env) 
 		else:
 			self.proc = subprocess.Popen([
 				"python", "retrotouch/native_runner.py",
-				str(his_rfd), str(his_wfd), str(self.parent.get_window().get_xid()),
-				str(color.red), str(color.green), str(color.blue),
-				self.shared_data.get_filename(), self.core, self.game])
+				self.core, self.game], env=env)
 		log.debug("Subprocess started")
 		os.close(his_rfd); os.close(his_wfd)
 	

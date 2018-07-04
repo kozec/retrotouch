@@ -165,7 +165,7 @@ static bool core_environment(unsigned cmd, void* data) {
 	
 	case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
 	case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
-		*(const char **)data = ".";
+		*(const char **)data = current->save_path;
 		return true;
 	
 	case RETRO_ENVIRONMENT_SET_HW_RENDER: {

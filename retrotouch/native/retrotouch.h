@@ -121,7 +121,8 @@ struct SharedData {
 
 
 typedef struct {
-	const char* respath;
+	const char* res_path;
+	const char* save_path;
 	int parent;
 	int window;
 	void (*cb_log) (const char* tag, int level, const char* message);

@@ -181,7 +181,6 @@ class App(Gtk.Application):
 		
 		def analyze_iso(stream, task):
 			a = stream.read_bytes_finish(task).get_data()
-			print (a[0x8008:0x8010],)
 			if a[0:0xe] == b"SEGADISCSYSTEM":
 				log.debug("Loading Sega Megadrive game")
 				GLib.timeout_add(100, self.load_game, "Megadrive", game_filename)

@@ -387,7 +387,7 @@
 All progress since last save was lost.
 Sorry about that.
 
-To continue, load last save or different ROM.
+To continue, close this message and load last save or different ROM.
 If problem persists, try starting RetroTouch from terminal and look at printed messages.</property>
                             <property name="wrap">True</property>
                             <property name="xalign">0</property>

@@ -9,9 +9,9 @@ from __future__ import unicode_literals
 from retrotouch.native.shared_data import SharedData
 from retrotouch.data import CORE_CONFIG_OVERRIDE, CORE_CONFIG_DEFAULTS
 from retrotouch.tools import load_core_config, save_core_config
-from retrotouch.paths import get_share_path
+from retrotouch.paths import get_share_path, get_data_path
 from retrotouch.rpc import RPC
-import sys, logging, ctypes
+import sys, os, logging, ctypes
 log = logging.getLogger("RRunner")
 
 
@@ -29,7 +29,8 @@ LOG_LEVELS = [
 
 class LibraryData(ctypes.Structure):
 	_fields_ = [
-		("respath", ctypes.c_char_p),
+		("res_path", ctypes.c_char_p),
+		("save_path", ctypes.c_char_p),
 		("parent", ctypes.c_int),
 		("window", ctypes.c_int),
 		("cb_log",  cb_log_t),
@@ -45,7 +46,7 @@ class LibraryData(ctypes.Structure):
 
 class Native:
 	
-	def __init__(self, respath, parent, input_fname):
+	def __init__(self, parent, input_fname):
 		self._lib = ctypes.CDLL("./libnative_runner.so")
 		self._lib.rt_init.restype = ctypes.c_int
 		self._lib.rt_check_saving_supported.restype = ctypes.c_int
@@ -58,7 +59,8 @@ class Native:
 		
 		self.__libdata = LibraryData()
 		self.__libdata.parent = parent
-		self.__libdata.respath = ctypes.c_char_p(respath.encode("utf-8"))
+		self.__libdata.res_path = ctypes.c_char_p(get_share_path().encode("utf-8"))
+		self.__libdata.save_path = ctypes.c_char_p(get_data_path().encode("utf-8"))
 		self.__libdata.cb_log = cb_log_t(self._cb_log)
 		self.__libdata.cb_render_size_changed = cb_render_size_changed_t(self.cb_render_size_changed)
 		self.__libdata.cb_get_variable = cb_get_variable_t(self.cb_get_variable)
@@ -139,9 +141,9 @@ class Native:
 
 
 class RetroRunner(Native, RPC):	
-	def __init__(self, respath, read_fd, write_fd, input_fname, parent, core, game):
+	def __init__(self, read_fd, write_fd, input_fname, parent, core, game):
 		RPC.__init__(self, read_fd, write_fd)
-		Native.__init__(self, respath, parent, input_fname)
+		Native.__init__(self, parent, input_fname)
 		self.config = load_core_config(core) or {}
 		self.load_core(core)
 		self.load_game(game)
@@ -192,21 +194,31 @@ class RetroRunner(Native, RPC):
 
 if __name__ == "__main__":
 	try:
-		read_fd, write_fd, window_id, r, g, b, input_fname, core, game = sys.argv[1:]
+		core, game = sys.argv[1:]
+		read_fd = long(os.environ.get("RT_RUNNER_READ_FD", "0"))
+		write_fd = long(os.environ.get("RT_RUNNER_WRITE_FD", "1"))
+		window_id = long(os.environ.get("RT_RUNNER_WINDOW_ID", "0"))
+		r, g, b = [ float(x) for x in os.environ.get("RT_BACKGROUND_COLOR", "0").split(" ") ]
+		input_fname = os.environ.get("RT_RUNNER_SHM_FILENAME", "/dev/null")
 	except ValueError:
 		print >>sys.stderr, "You should not be running this script directly."
 		print >>sys.stderr, ""
 		print >>sys.stderr, "But if you absolutelly must, arguments are:"
-		print >>sys.stderr, "	read_fd write_fd window_id r g b input_fname core game"
+		print >>sys.stderr, "	%s core game" % (sys.argv[0],)
+		print >>sys.stderr, "Required env.variables:"
+		print >>sys.stderr, "	RT_RUNNER_READ_FD"
+		print >>sys.stderr, "	RT_RUNNER_WRITE_FD"
+		print >>sys.stderr, "	RT_RUNNER_WINDOW_ID"
+		print >>sys.stderr, "	RT_RUNNER_SHM_FILENAME"
+		print >>sys.stderr, "	RT_BACKGROUND_COLOR (r g b, space separated, floats)"
 		sys.exit(1)
 	
 	from retrotouch.tools import init_logging, set_logging_level
 	init_logging()
 	set_logging_level(True, True)
 	
-	respath = get_share_path()
-	n = RetroRunner(respath, int(read_fd), int(write_fd),
-			input_fname, int(window_id), core, game)
+	n = RetroRunner(int(read_fd), int(write_fd), input_fname,
+						int(window_id), core, game)
 	n.set_background_color(float(r), float(g), float(b))
 	n.set_paused(False)
 	save_core_config(core, n.config)

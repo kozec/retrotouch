@@ -88,7 +88,7 @@ void rt_compile_shaders(LibraryData* data) {
 	LOG(RETRO_LOG_DEBUG, "Compiling shaders [%s]", defines_log);
 	
 	// Allocate
-	char* shader_name = malloc(strlen(data->respath) + 100);
+	char* shader_name = malloc(strlen(data->res_path) + 100);
 	if (shader_name == NULL) {
 		rt_set_error(data, "Out of memory");
 		return;
@@ -96,7 +96,7 @@ void rt_compile_shaders(LibraryData* data) {
 	
 	// Load "pads" shader
 	if (data->private->gl.prog_pads.id == 0) {
-		strcpy(shader_name, data->respath);
+		strcpy(shader_name, data->res_path);
 		strcat(shader_name, "/pads");
 		if (0 != load_shader_program(shader_name, defines, &(data->private->gl.prog_pads.id))) {
 			free(shader_name);
@@ -112,7 +112,7 @@ void rt_compile_shaders(LibraryData* data) {
 	}
 	
 	// Load "main" shader
-	strcpy(shader_name, data->respath);
+	strcpy(shader_name, data->res_path);
 	strcat(shader_name, "/normal");
 	if (0 != load_shader_program(shader_name, defines, &(data->private->gl.prog_normal.id))) {
 		free(shader_name);
