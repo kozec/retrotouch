@@ -225,7 +225,7 @@ static void core_audio_sample(int16_t left, int16_t right) {
 
 
 static size_t core_audio_sample_batch(const int16_t* audiodata, size_t frames) {
-	rt_audio_sample_batch(current, audiodata, frames);
+	return rt_audio_sample_batch(current, audiodata, frames);
 }
 
 
@@ -348,6 +348,7 @@ int rt_core_load(LibraryData* data, const char* filename) {
 	current->core->game_loaded = false;
 	
 	LOG(RETRO_LOG_DEBUG, "Core loaded");
+	return 0;
 }
 
 
