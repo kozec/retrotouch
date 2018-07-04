@@ -5,4 +5,4 @@ Comment=Touch-screen enabled games and emulators
 Exec=retrotouch
 Type=Application
 Icon=retrotouch
-Categories=Game;
+Categories=Game;Emulator
