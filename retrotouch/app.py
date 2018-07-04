@@ -550,6 +550,7 @@ class App(Gtk.Application):
 			if index >= 0:
 				event.x, event.y = event.x - px, event.y - py
 				self.pads[index].on_event(self.pads[index], event)
+		event.type = -1		# Prevent handling same event as mouse click
 	
 	def on_ebMain_button_event(self, eb, event):
 		if self.wrapper:
