@@ -8,7 +8,7 @@ from gi.repository import Gtk, Gio, GdkX11
 from retrotouch.rpc import RPC, decode_call, decode_size
 from retrotouch.native.shared_data import SharedData
 from collections import OrderedDict
-import os, logging, subprocess
+import os, sys, logging, subprocess
 log = logging.getLogger("Wrapper")
 
 
@@ -50,7 +50,7 @@ class Wrapper(RPC):
 		env['RT_RUNNER_SHM_FILENAME'] = self.shared_data.get_filename()
 		# Start native_runner
 		if self.GDB:
-			self.proc = subprocess.Popen([ "gdb", "python" ],
+			self.proc = subprocess.Popen([ "gdb", sys.executable ],
 				env=env, stdin=subprocess.PIPE)
 			print >>self.proc.stdin, " ".join([
 				"run", "retrotouch/native_runner.py",
@@ -67,7 +67,7 @@ class Wrapper(RPC):
 			], env=env) 
 		else:
 			self.proc = subprocess.Popen([
-				"python", "retrotouch/native_runner.py",
+				sys.executable, "retrotouch/native_runner.py",
 				self.core, self.game], env=env)
 		log.debug("Subprocess started")
 		os.close(his_rfd); os.close(his_wfd)
