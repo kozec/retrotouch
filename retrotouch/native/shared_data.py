@@ -78,7 +78,7 @@ class SharedData:
 		self.mmap.flush()
 	
 	def clear_images(self):
-		for x in instance.image_data:
+		for x in self.image_data:
 			x.offset = x.size = 0
 		self._resize(0)
 	

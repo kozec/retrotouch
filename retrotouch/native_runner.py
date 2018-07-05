@@ -46,7 +46,7 @@ class LibraryData(ctypes.Structure):
 
 class Native:
 	
-	def __init__(self, parent, input_fname):
+	def __init__(self, parent, shm_fname):
 		self._lib = ctypes.CDLL("./libnative_runner.so")
 		self._lib.rt_init.restype = ctypes.c_int
 		self._lib.rt_check_saving_supported.restype = ctypes.c_int
@@ -55,7 +55,7 @@ class Native:
 		self._lib.rt_get_game_loaded.restype = ctypes.c_int
 		
 		self.paused = True
-		self.shared_data = SharedData(input_fname, False)
+		self.shared_data = SharedData(shm_fname, False)
 		
 		self.__libdata = LibraryData()
 		self.__libdata.parent = parent
@@ -113,7 +113,6 @@ class Native:
 	def set_background_color(self, r, g, b):
 		self._lib.rt_set_background_color(self._libdata, ctypes.c_float(r), ctypes.c_float(g), ctypes.c_float(b))
 	
-	
 	def ping(self, *a, **b):
 		pass
 	
@@ -141,9 +140,11 @@ class Native:
 
 
 class RetroRunner(Native, RPC):	
-	def __init__(self, read_fd, write_fd, input_fname, parent, core, game):
+	def __init__(self, read_fd, write_fd, shm_fname, parent, core, game):
 		RPC.__init__(self, read_fd, write_fd)
-		Native.__init__(self, parent, input_fname)
+		Native.__init__(self, parent, shm_fname)
+		if shm_fname is None:
+			self.shared_data.get_ptr().contents.scale_factor = 1.0
 		self.config = load_core_config(core) or {}
 		self.load_core(core)
 		self.load_game(game)
@@ -202,11 +203,14 @@ if __name__ == "__main__":
 	try:
 		core, game = sys.argv[1:]
 		read_fd = long(os.environ.get("RT_RUNNER_READ_FD", "0"))
-		write_fd = long(os.environ.get("RT_RUNNER_WRITE_FD", "1"))
+		write_fd = long(os.environ.get("RT_RUNNER_WRITE_FD", -1))
 		window_id = long(os.environ.get("RT_RUNNER_WINDOW_ID", "0"))
-		r, g, b = [ float(x) for x in os.environ.get("RT_BACKGROUND_COLOR", "0").split(" ") ]
-		input_fname = os.environ.get("RT_RUNNER_SHM_FILENAME", "/dev/null")
-	except ValueError:
+		r, g, b = [ float(x) for x in os.environ.get("RT_BACKGROUND_COLOR", "0 0 0").split(" ") ]
+		shm_fname = os.environ.get("RT_RUNNER_SHM_FILENAME", None)
+		if write_fd < 0:
+			_write = open("/dev/null", 'wb')
+			write_fd = _write.fileno()
+	except ValueError, e:
 		print >>sys.stderr, "You should not be running this script directly."
 		print >>sys.stderr, ""
 		print >>sys.stderr, "But if you absolutelly must, arguments are:"
@@ -217,14 +221,15 @@ if __name__ == "__main__":
 		print >>sys.stderr, "	RT_RUNNER_WINDOW_ID"
 		print >>sys.stderr, "	RT_RUNNER_SHM_FILENAME"
 		print >>sys.stderr, "	RT_BACKGROUND_COLOR (r g b, space separated, floats)"
+		print >>sys.stderr, ""
+		print >>sys.stderr, e
 		sys.exit(1)
 	
 	from retrotouch.tools import init_logging, set_logging_level
 	init_logging()
 	set_logging_level(True, True)
 	
-	n = RetroRunner(int(read_fd), int(write_fd), input_fname,
-						int(window_id), core, game)
+	n = RetroRunner(read_fd, write_fd, shm_fname, window_id, core, game)
 	n.set_background_color(float(r), float(g), float(b))
 	n.set_paused(False)
 	save_core_config(core, n.config)

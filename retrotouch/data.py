@@ -25,7 +25,7 @@ EXPERIMENTAL_CORES = OrderedDict((
 	# Experimental core is one that works, but is known to have issues.
 	# It's not listed in welcome screen, but can be used if user requests loading game for it
 	('PSP',			('ppsspp',)),			# Crashes randomly
-	('PS1',			('mednafen_psx',)),		# Needs BIOS
+	('PS1',			('pcsx_rearmed',)),		# Needs BIOS
 ))
 
 ALL_CORES = OrderedDict(SUPPORTED_CORES.items() + EXPERIMENTAL_CORES.items())

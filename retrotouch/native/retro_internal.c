@@ -112,12 +112,17 @@ static bool core_environment(unsigned cmd, void* data) {
 	case RETRO_ENVIRONMENT_GET_LOG_INTERFACE: {
 		struct retro_log_callback* cb = (struct retro_log_callback *)data;
 		cb->log = core_log;
-		break;
+		return true;
 	}
 	case RETRO_ENVIRONMENT_GET_CAN_DUPE:
 		bval = (bool*)data;
 		*bval = true;
-		break;
+		return true;
+	case RETRO_ENVIRONMENT_SET_MESSAGE: {
+		const struct retro_message* msg = (const struct retro_message*)data;
+		LOG(RETRO_LOG_INFO, ":: %s", msg->msg);
+		return true;
+	}
 	case RETRO_ENVIRONMENT_SET_VARIABLES: {
 		const struct retro_variable* var = (const struct retro_variable*)data;
 		for (; var->key != NULL; var++)
@@ -233,7 +238,9 @@ static void core_audio_sample(int16_t left, int16_t right) {
 
 
 static size_t core_audio_sample_batch(const int16_t* audiodata, size_t frames) {
-	return rt_audio_sample_batch(current, audiodata, frames);
+	return frames;
+	// printf("-- %p\n", frames);
+	// return rt_audio_sample_batch(current, audiodata, frames);
 }
 
 
