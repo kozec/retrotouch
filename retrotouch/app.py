@@ -133,6 +133,7 @@ class App(Gtk.Application):
 				GLib.idle_add(check_next, keys)
 			elif self.rom_to_load:
 				rom, self.rom_to_load = self.rom_to_load, None
+				self.set_intro_status(_("Loading..."), False)
 				self.select_core(rom)
 			
 			return False
@@ -455,6 +456,7 @@ class App(Gtk.Application):
 	
 	def ivLoadGame_item_activated_cb(self, view, path):
 		self.save_to_load = view.get_model()[path][2]
+		self.set_intro_status(_("Loading saved state..."), False)
 		self.select_core(Gio.File.new_for_path(view.get_model()[path][3]))
 	
 	def on_ivLoadGame_motion_notify_event(self, iv, event):
