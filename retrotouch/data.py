@@ -33,13 +33,14 @@ ALL_CORES = OrderedDict(SUPPORTED_CORES.items() + EXPERIMENTAL_CORES.items())
 CORE_CONFIG_OVERRIDE = {
 	# Overrides some core-specific settings
 	"desmume_pointer_type": "touch",
-	"desmume_pointer_mouse": "enabled"
+	"desmume_pointer_mouse": "enabled",
 }
 
 CORE_CONFIG_DEFAULTS = {
 	# Overrides defaults for core-specific settings
 	"desmume_num_cores": "2",
 	"ppsspp_separate_io_thread": "enabled",
+	"picodrive_input1": "6 button pad",
 }
 
 CSS = """

@@ -53,7 +53,7 @@ class Wrapper(RPC):
 			self.proc = subprocess.Popen([ "gdb", sys.executable ],
 				env=env, stdin=subprocess.PIPE)
 			print >>self.proc.stdin, " ".join([
-				"run", "retrotouch/native_runner.py",
+				"run", "-m", "retrotouch.native_runner",
 				"'%s'" % (self.core,) , "'%s'" % (self.game,),
 			])
 			print >>self.proc.stdin, "bt"
@@ -62,12 +62,12 @@ class Wrapper(RPC):
 				"valgrind",
 				"--suppressions=resources/valgrind-python.supp",
 				"--tool=memcheck",
-				"python", "retrotouch/native_runner.py",
+				"python", "-m", "retrotouch.native_runner",
 				self.core, self.game,
 			], env=env) 
 		else:
 			self.proc = subprocess.Popen([
-				sys.executable, "retrotouch/native_runner.py",
+				sys.executable, "-m", "retrotouch.native_runner",
 				self.core, self.game], env=env)
 		log.debug("Subprocess started")
 		os.close(his_rfd); os.close(his_wfd)

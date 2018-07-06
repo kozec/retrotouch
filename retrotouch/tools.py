@@ -7,12 +7,12 @@ Various stuff that I don't care to fit anywhere else.
 from __future__ import unicode_literals
 from retrotouch.paths import get_config_path
 
-import os, json, logging
+import os, sys, imp, ctypes, json, logging
 
 log = logging.getLogger("tools.py")
 _ = lambda x : x
 
-LOG_FORMAT				= "%(levelname)s %(name)-13s %(message)s"
+LOG_FORMAT = "%(levelname)s %(name)-13s %(message)s"
 
 def init_logging(prefix="", suffix=""):
 	"""
@@ -55,6 +55,35 @@ def set_logging_level(verbose, debug):
 		logger.setLevel(11)
 	else:			# INFO and worse
 		logger.setLevel(20)
+
+
+def find_library(libname):
+	"""
+	Search for 'libname.so'.
+	Returns library loaded with ctypes.CDLL
+	Raises OSError if library is not found
+	"""
+	lib, search_paths = None, []
+	so_extensions = [ ext for ext, _, typ in imp.get_suffixes()
+			if typ == imp.C_EXTENSION ]
+	for extension in so_extensions:
+		for base_path in list(sys.path):
+			search_paths += [
+				os.path.abspath(os.path.normpath(
+					os.path.join( base_path, libname + extension ))),
+				os.path.abspath(os.path.normpath(
+					os.path.join( base_path, libname + extension )))
+				]
+	
+	for path in search_paths:
+		if os.path.exists(path):
+			lib = path
+			break
+	
+	if not lib:
+		raise OSError('Cant find %s.so. searched at:\n %s' % (
+			libname, '\n'.join(search_paths)))
+	return ctypes.CDLL(lib)
 
 
 def _config_file(core):

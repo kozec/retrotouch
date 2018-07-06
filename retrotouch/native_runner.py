@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from retrotouch.native.shared_data import SharedData
 from retrotouch.data import CORE_CONFIG_OVERRIDE, CORE_CONFIG_DEFAULTS
 from retrotouch.tools import load_core_config, save_core_config
+from retrotouch.tools import find_library
 from retrotouch.paths import get_share_path, get_data_path
 from retrotouch.rpc import RPC
 import sys, os, logging, ctypes
@@ -47,7 +48,7 @@ class LibraryData(ctypes.Structure):
 class Native:
 	
 	def __init__(self, parent, shm_fname):
-		self._lib = ctypes.CDLL("./libnative_runner.so")
+		self._lib = find_library("libnative_runner")
 		self._lib.rt_init.restype = ctypes.c_int
 		self._lib.rt_check_saving_supported.restype = ctypes.c_int
 		self._lib.rt_check_error.restype = ctypes.c_char_p
