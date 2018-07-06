@@ -550,6 +550,9 @@ class App(Gtk.Application):
 			if index >= 0:
 				event.x, event.y = event.x - px, event.y - py
 				self.pads[index].on_event(self.pads[index], event)
+			else:
+				self._set_mouse(event)
+				self.wrapper.set_mouse_button(button, event.type == Gdk.EventType.TOUCH_BEGIN)
 		event.type = -1		# Prevent handling same event as mouse click
 	
 	def on_ebMain_button_event(self, eb, event):

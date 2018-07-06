@@ -238,9 +238,7 @@ static void core_audio_sample(int16_t left, int16_t right) {
 
 
 static size_t core_audio_sample_batch(const int16_t* audiodata, size_t frames) {
-	return frames;
-	// printf("-- %p\n", frames);
-	// return rt_audio_sample_batch(current, audiodata, frames);
+	return rt_audio_sample_batch(current, audiodata, frames);
 }
 
 
