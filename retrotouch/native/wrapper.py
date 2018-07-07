@@ -16,7 +16,7 @@ class Wrapper(RPC):
 	GDB = False
 	VALGRIND = False
 	
-	def __init__(self, app, parent, core, game):
+	def __init__(self, app, parent, core, game, opts):
 		# Store variables
 		self.app = app
 		self.parent = parent
@@ -43,6 +43,8 @@ class Wrapper(RPC):
 		
 		# Setup environment
 		env = dict(**os.environ)
+		for key, value in opts.items():
+			env[key] = value
 		env['RT_RUNNER_READ_FD'] = str(his_rfd)
 		env['RT_RUNNER_WRITE_FD'] = str(his_wfd)
 		env['RT_RUNNER_WINDOW_ID'] = str(self.parent.get_window().get_xid())

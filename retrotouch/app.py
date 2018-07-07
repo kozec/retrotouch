@@ -151,7 +151,14 @@ class App(Gtk.Application):
 			a = stream.read_bytes_finish(task).get_data()
 			if a[0:4] == b"\x4e\x45\x53\x1A":
 				log.debug("Loading NES game")
-				GLib.timeout_add(100, self.load_game, "NES", game_filename)
+				# Ugly hack: It turns out that a lot of NES ROMs have wrong region flag.
+				# To fix that at least partially, ROM with flag 0 (NTSC) and "(E)" in 
+				# filename gets prefered region changed to PAL.
+				opts = {}
+				if a[9] == b"\x00" and "(E)" in os.path.split(game_filename)[-1]:
+					log.warning("Detected (E) ROM with NTFS bit set")
+					opts["RT_CORE_CONFIG_OVERRIDE"] = '{"nestopia_favored_system": "pal"}'
+				GLib.timeout_add(100, self.load_game, "NES", game_filename, opts)
 			elif a[0x100:0x102] == b"\x00\xc3":
 				log.debug("Loading Gameboy game")
 				GLib.timeout_add(100, self.load_game, "GB", game_filename)
@@ -247,7 +254,7 @@ class App(Gtk.Application):
 			rvFormats = self.builder.get_object("rvFormats")
 			rvFormats.set_reveal_child(True)
 	
-	def load_game(self, rom_type, game_path):
+	def load_game(self, rom_type, game_path, opts={}):
 		if self.wrapper:
 			self.wrapper.destroy()
 		self.window.set_title(_("RetroTouch - %s") % (rom_type, ))
@@ -269,7 +276,7 @@ class App(Gtk.Application):
 			os.makedirs(self.savegame_path)
 		except: pass
 		btQuickSave.set_visible(False)
-		self.wrapper = Wrapper(self, ebMain, core_filename, game_path)
+		self.wrapper = Wrapper(self, ebMain, core_filename, game_path, opts)
 		self.wrapper.set_vsync(False)
 		self.select_pads(rom_type, name)
 		for pad in self.pads:

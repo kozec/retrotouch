@@ -12,7 +12,7 @@ from retrotouch.tools import load_core_config, save_core_config
 from retrotouch.tools import find_library
 from retrotouch.paths import get_share_path, get_data_path
 from retrotouch.rpc import RPC
-import sys, os, logging, ctypes
+import sys, os, json, logging, ctypes
 log = logging.getLogger("RRunner")
 
 
@@ -147,6 +147,10 @@ class RetroRunner(Native, RPC):
 		if shm_fname is None:
 			self.shared_data.get_ptr().contents.scale_factor = 1.0
 		self.config = load_core_config(core) or {}
+		self.env_config_override = {}
+		try:
+			self.env_config_override = json.loads(os.environ.get("RT_CORE_CONFIG_OVERRIDE"))
+		except: pass
 		self.load_core(core)
 		self.load_game(game)
 	
@@ -159,7 +163,9 @@ class RetroRunner(Native, RPC):
 	
 	def cb_get_variable(self, key):
 		key = key.decode("utf-8")
-		if key in CORE_CONFIG_OVERRIDE:
+		if key in self.env_config_override:
+			return self.env_config_override[key].encode("utf-8")
+		elif key in CORE_CONFIG_OVERRIDE:
 			return CORE_CONFIG_OVERRIDE[key].encode("utf-8")
 		elif key in self.config:
 			return str(self.config[key]).encode("utf-8")
