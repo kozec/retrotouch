@@ -17,6 +17,7 @@ SUPPORTED_CORES = OrderedDict((
 	('GBA',			('mgba',)),
 	('NDS',			('desmume',)),
 	('N64',			("mupen64plus", "parallel_n64")),
+	('PS1',			('pcsx_rearmed',)),
 	('Megadrive',	('picodrive', 'blastem',)),
 	('Sega32x',		('picodrive',)),
 ))
@@ -25,7 +26,6 @@ EXPERIMENTAL_CORES = OrderedDict((
 	# Experimental core is one that works, but is known to have issues.
 	# It's not listed in welcome screen, but can be used if user requests loading game for it
 	('PSP',			('ppsspp',)),			# Crashes randomly
-	('PS1',			('pcsx_rearmed',)),		# Needs BIOS
 ))
 
 ALL_CORES = OrderedDict(SUPPORTED_CORES.items() + EXPERIMENTAL_CORES.items())

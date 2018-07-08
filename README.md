@@ -14,6 +14,7 @@ RetroTouch
 - Gameboy Advance via [mgba](https://github.com/libretro/mgba)
 - Nintendo DS via [desmume](https://github.com/libretro/desmume)
 - N64 via [mupen64plus](https://github.com/libretro/mupen64plus-libretro)
+- PlayStation 1 via [pcsx_rearmed](https://github.com/libretro/pcsx_rearmed)
 - Sega Megadrive, Genesis and 32X via [picodrive](https://github.com/libretro/picodrive)
 
 ##### Packages

@@ -192,13 +192,13 @@ class App(Gtk.Application):
 			if a[0:0xe] == b"SEGADISCSYSTEM":
 				log.debug("Loading Sega Megadrive game")
 				GLib.timeout_add(100, self.load_game, "Megadrive", game_filename)
+			elif a[0x8008:0x8010] == b"PSP GAME":
+				log.debug("Loading PSP game")
+				GLib.timeout_add(100, self.load_game, "PSP", game_filename)
 			elif a[0:0x13] == b"\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x02\x00\x02\x00\x00\x08":
 				# TODO: I'm not sure if this is right, but matches everything so far
 				log.debug("Loading PS1 game")
 				GLib.timeout_add(100, self.load_game, "PS1", game_filename)
-			elif a[0x8008:0x8010] == b"PSP GAME":
-				log.debug("Loading PSP game")
-				GLib.timeout_add(100, self.load_game, "PSP", game_filename)
 			else:
 				log.debug("Unknown file type")
 				self.set_intro_status(random.choice(UNKNOWN_FORMAT_ERROR), True)
@@ -213,6 +213,13 @@ class App(Gtk.Application):
 		elif game_filename.lower().split(".")[-1] in ("iso", "img", "bin"):
 			# May be PSP, PS1 or even Sega Megadrive game
 			rom_file.read_async(0, None, read_header, 0x8040, analyze_iso)
+		elif game_filename.lower().split(".")[-1] in ("cue",):
+			# Cue file needs to have bin right next to it
+			bin = Gio.File.new_for_path(".".join(game_filename.split(".")[:-1] + ["bin"]))
+			if not bin.query_exists(None):
+				self.set_intro_status("Attempted to load .cue, but there is no .bin", True)
+			else:
+				self.select_core(bin)
 		elif game_filename.lower().split(".")[-1] in ("cso",):
 			log.debug("Loading PSP game")
 			GLib.timeout_add(100, self.load_game, "PSP", game_filename)
